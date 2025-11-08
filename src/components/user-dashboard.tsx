@@ -4,10 +4,11 @@ import { useState, useMemo } from 'react';
 import type { User } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { AddUserSheet } from '@/components/add-user-sheet';
 import { UserTableActions } from '@/components/user-table-actions';
 import { QrCodeDialog } from '@/components/qr-code-dialog';
 import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 interface UserDashboardProps {
   initialUsers: User[];
@@ -37,9 +38,13 @@ export default function UserDashboard({ initialUsers: users }: UserDashboardProp
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight font-headline">User Registrations</h1>
-          <p className="text-muted-foreground">Manage and create new user enrollments.</p>
+          <p className="text-muted-foreground">A list of all users who have registered.</p>
         </div>
-        <AddUserSheet />
+        <Button asChild>
+          <Link href="/">
+            View QR Code
+          </Link>
+        </Button>
       </div>
       
       <div className="bg-card p-4 sm:p-6 rounded-xl border shadow-sm">
@@ -80,7 +85,7 @@ export default function UserDashboard({ initialUsers: users }: UserDashboardProp
               ) : (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                    No users found matching your search.
+                    No users found.
                   </TableCell>
                 </TableRow>
               )}

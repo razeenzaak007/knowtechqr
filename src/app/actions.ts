@@ -38,7 +38,7 @@ export async function addUserAction(prevState: FormState, formData: FormData) {
 
   try {
     const newUser = await dbAddUser(validatedFields.data);
-    revalidatePath('/');
+    revalidatePath('/admin');
     return {
         message: 'User added successfully.',
         user: newUser,
