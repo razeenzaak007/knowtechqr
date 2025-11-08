@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useTransition } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -25,7 +25,7 @@ type FormData = z.infer<typeof UserSchema>;
 
 export default function RegisterPage() {
   const { toast } = useToast();
-  const [isPending, startTransition] = React.useTransition();
+  const [isPending, startTransition] = useTransition();
   const [submissionState, setSubmissionState] = useState<{
     submitted: boolean;
     qrCodeUrl?: string;
