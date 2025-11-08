@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { addUser as dbAddUser } from '@/lib/data';
+import { addUser as dbAddUser, checkInUser as dbCheckInUser } from '@/lib/data';
 
 const UserSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -50,5 +50,18 @@ export async function addUserAction(prevState: FormState, formData: FormData) {
       user: null,
       errors: {}
     };
+  }
+}
+
+export async function checkInUserAction(userId: string) {
+  try {
+    const checkedInUser = await dbCheckInUser(userId);
+    if (checkedInUser) {
+      revalidatePath('/admin');
+      return { success: true, user: checkedInUser, message: `${checkedInUser.name} checked in successfully.` };
+    }
+    return { success: false, message: 'User not found.' };
+  } catch (error) {
+    return { success: false, message: 'An error occurred during check-in.' };
   }
 }

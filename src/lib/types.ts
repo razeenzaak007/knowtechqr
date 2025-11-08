@@ -5,4 +5,5 @@ export interface User {
   class: string;
   qrCodeUrl: string;
   createdAt: string; // Using string for easy serialization between server/client
+  checkedInAt: string | null; // Can be a date string or null
 }
