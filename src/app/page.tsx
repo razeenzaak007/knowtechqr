@@ -1,16 +1,22 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Header from '@/components/header';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function Home() {
-  const registerUrl = typeof window !== 'undefined' ? `${window.location.origin}/register` : '';
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(registerUrl)}`;
+  const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const registerUrl = `${window.location.origin}/register`;
+    setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(registerUrl)}`);
+  }, []);
 
   const handleDownload = () => {
-    if (!registerUrl) return;
+    if (!qrCodeUrl) return;
     const link = document.createElement('a');
     link.href = qrCodeUrl;
     link.download = `registration-qrcode.png`;
@@ -30,21 +36,23 @@ export default function Home() {
             Display or download this QR code. When scanned, it will lead to the user registration form.
           </p>
 
-          {registerUrl && (
-            <div className="flex items-center justify-center p-6 bg-muted/50 rounded-lg border w-full max-w-sm mx-auto">
-                <Image
-                  src={qrCodeUrl}
-                  alt="Registration QR Code"
-                  width={250}
-                  height={250}
-                  className="rounded-lg shadow-md"
-                  unoptimized
-                />
-            </div>
-          )}
+          <div className="flex items-center justify-center p-6 bg-muted/50 rounded-lg border w-full max-w-sm mx-auto min-h-[302px]">
+            {qrCodeUrl ? (
+              <Image
+                src={qrCodeUrl}
+                alt="Registration QR Code"
+                width={250}
+                height={250}
+                className="rounded-lg shadow-md"
+                unoptimized
+              />
+            ) : (
+                <Skeleton className="w-[250px] h-[250px] rounded-lg" />
+            )}
+          </div>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button onClick={handleDownload} size="lg">
+            <Button onClick={handleDownload} size="lg" disabled={!qrCodeUrl}>
               Download QR Code
             </Button>
             <Button asChild variant="secondary" size="lg">
