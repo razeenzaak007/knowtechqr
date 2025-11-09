@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo } from 'react';
 import type { User } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -79,6 +79,7 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
   
   const filteredUsers = useMemo(() => {
+    if (!search) return initialUsers;
     const searchTerm = search.toLowerCase();
     return initialUsers.filter(user =>
       user.name.toLowerCase().includes(searchTerm) ||
@@ -86,7 +87,8 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
       user.job.toLowerCase().includes(searchTerm) ||
       user.area.toLowerCase().includes(searchTerm) ||
       user.bloodGroup.toLowerCase().includes(searchTerm) ||
-      user.gender.toLowerCase().includes(searchTerm)
+      user.gender.toLowerCase().includes(searchTerm) ||
+      user.whatsappNumber.includes(searchTerm)
     );
   }, [search, initialUsers]);
 
@@ -123,12 +125,12 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
       <Tabs defaultValue="registered">
         <div className="flex justify-between items-center flex-wrap gap-4">
             <TabsList>
-                <TabsTrigger value="registered">Registered</TabsTrigger>
-                <TabsTrigger value="checked-in">Checked-in</TabsTrigger>
+                <TabsTrigger value="registered">Registered ({registeredUsers.length})</TabsTrigger>
+                <TabsTrigger value="checked-in">Checked-in ({checkedInUsers.length})</TabsTrigger>
             </TabsList>
             <div className="w-full sm:w-auto">
                 <Input
-                placeholder="Search..."
+                placeholder="Search by name, email, job, area..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full sm:max-w-sm"
