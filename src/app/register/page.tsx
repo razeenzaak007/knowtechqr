@@ -30,22 +30,24 @@ export default function RegisterPage() {
   const [formKey, setFormKey] = useState(Date.now().toString());
 
   useEffect(() => {
-    if (!isPending && state.message) {
+    // This effect runs when the server action is done (isPending is false)
+    if (!isPending) {
       if (state.user) {
+        // SUCCESS: A user object was returned.
         setSubmittedUser(state.user);
         toast({
-            title: "Registration Successful!",
-            description: "Your QR code has been generated."
+          title: "Registration Successful!",
+          description: "Your QR code has been generated.",
         });
         formRef.current?.reset();
-        // Also reset the visual state for controlled components like Select
-        setFormKey(Date.now().toString()); 
-      } else {
+        setFormKey(Date.now().toString());
+      } else if (state.message) {
+        // FAILURE: No user, but there's an error message.
         setSubmittedUser(null);
         toast({
-            variant: "destructive",
-            title: "Registration Failed",
-            description: state.message || state.errors?._form?.[0] || "An unknown error occurred.",
+          variant: "destructive",
+          title: "Registration Failed",
+          description: state.message || state.errors?._form?.[0] || "An unknown error occurred.",
         });
       }
     }
