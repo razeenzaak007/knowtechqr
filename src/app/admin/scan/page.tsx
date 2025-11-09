@@ -12,6 +12,7 @@ import type { User } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CameraOff, CheckCircle, User as UserIcon, XCircle } from 'lucide-react';
 import Link from 'next/link';
+import { format } from 'date-fns';
 
 export default function ScanPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -101,6 +102,9 @@ export default function ScanPage() {
           });
         } else {
           setScanError(result.message || 'Failed to check-in user. User not found in database.');
+           if (result.alreadyCheckedIn && result.user) {
+             setScannedUser(result.user); // So we can show user details even on error
+          }
         }
       } else {
         setScanError('Invalid QR Code. The scanned code does not contain a valid user ID.');
@@ -139,7 +143,7 @@ export default function ScanPage() {
                 )}
             </div>
 
-            {scannedUser && (
+            {scannedUser && !scanError && (
                  <Alert variant="default" className="bg-green-50 border-green-200">
                     <CheckCircle className="h-4 w-4 !text-green-600"/>
                     <AlertTitle className="text-green-800">Check-in Successful</AlertTitle>
@@ -157,7 +161,14 @@ export default function ScanPage() {
                     <XCircle className="h-4 w-4"/>
                     <AlertTitle>Scan Error</AlertTitle>
                     <AlertDescription>
-                        {scanError}
+                        <p>{scanError}</p>
+                         {scannedUser && (
+                           <div className="mt-2 text-sm">
+                             <p className="font-semibold">Details for {scannedUser.name}:</p>
+                             <p>Email: {scannedUser.email}</p>
+                             {scannedUser.checkedInAt && <p>Initial Check-in: {format(new Date(scannedUser.checkedInAt), "MMM d, yyyy 'at' h:mm a")}</p>}
+                           </div>
+                         )}
                     </AlertDescription>
                 </Alert>
             )}

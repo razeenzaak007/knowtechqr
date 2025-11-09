@@ -77,10 +77,13 @@ export async function addUserAction(prevState: FormState, formData: FormData): P
 
 export async function checkInUserAction(userId: string) {
   try {
-    const checkedInUser = await dbCheckInUser(userId);
-    if (checkedInUser) {
+    const result = await dbCheckInUser(userId);
+    if (result.user) {
+      if (result.alreadyCheckedIn) {
+        return { success: false, alreadyCheckedIn: true, user: result.user, message: `This user has already been checked in at ${new Date(result.user.checkedInAt!).toLocaleString()}.` };
+      }
       revalidatePath('/admin');
-      return { success: true, user: checkedInUser, message: `${checkedInUser.name} checked in successfully.` };
+      return { success: true, alreadyCheckedIn: false, user: result.user, message: `${result.user.name} checked in successfully.` };
     }
     return { success: false, message: 'User not found.' };
   } catch (error) {

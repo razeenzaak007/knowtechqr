@@ -1,3 +1,4 @@
+
 import fs from 'fs/promises';
 import path from 'path';
 import type { User } from './types';
@@ -69,7 +70,7 @@ export async function addUser(user: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' 
     }
 }
 
-export async function checkInUser(userId: string): Promise<User | null> {
+export async function checkInUser(userId: string): Promise<{ user: User | null; alreadyCheckedIn: boolean; }> {
     try {
         const db = await readDB();
         const userIndex = db.users.findIndex(u => u.id === userId);
@@ -77,16 +78,18 @@ export async function checkInUser(userId: string): Promise<User | null> {
         if (userIndex > -1) {
             const user = db.users[userIndex];
             
-            // Only check-in if they haven't been already
-            if (!user.checkedInAt) {
-                user.checkedInAt = new Date().toISOString();
-                await writeDB(db);
+            if (user.checkedInAt) {
+                 // User is already checked in
+                return { user, alreadyCheckedIn: true };
             }
-            
-            return user;
+
+            // User is not checked in, so check them in now
+            user.checkedInAt = new Date().toISOString();
+            await writeDB(db);
+            return { user, alreadyCheckedIn: false };
         }
         
-        return null; // User not found
+        return { user: null, alreadyCheckedIn: false }; // User not found
     } catch (error) {
         console.error("Error checking in user:", error);
         throw new Error('Could not check in user. Please try again.');
