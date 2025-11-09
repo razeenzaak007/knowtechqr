@@ -62,6 +62,7 @@ export default function RegisterPage() {
             setSubmittedUser(state.user);
             form.reset();
         } else {
+            setSubmittedUser(null);
             toast({
                 variant: "destructive",
                 title: "Registration Failed",
@@ -94,6 +95,9 @@ export default function RegisterPage() {
   const handleRegisterAnother = () => {
     setSubmittedUser(null);
     form.reset();
+    // Also reset the action state so the success message doesn't re-trigger
+    const freshInitialState: FormState = { message: '', user: null, errors: {} };
+    Object.assign(initialState, freshInitialState);
   };
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -150,7 +154,7 @@ export default function RegisterPage() {
                    <FormField control={form.control} name="age" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Age</FormLabel>
-                        <FormControl><Input type="number" placeholder="e.g., 25" {...field} value={field.value === 0 ? '' : field.value} /></FormControl>
+                        <FormControl><Input type="number" placeholder="e.g., 25" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} value={field.value === 0 ? '' : field.value} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
