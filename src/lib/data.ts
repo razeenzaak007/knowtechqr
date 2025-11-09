@@ -1,7 +1,7 @@
 import type { User } from './types';
 
 // In a real application, this would be a database like Firestore.
-// This is an in-memory store that resets on server restart.
+// This is an-memory store that resets on server restart.
 const users: User[] = [];
 
 // Functions to interact with the mock data
@@ -15,14 +15,17 @@ export async function addUser(user: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' 
     const newUser: User = {
         id: (Date.now() + Math.random()).toString(36),
         ...user,
-        // The QR code now contains the unique user ID
-        qrCodeUrl: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent((Date.now() + Math.random()).toString(36))}`,
+        // This is a temporary placeholder URL.
+        qrCodeUrl: '', 
         createdAt: new Date().toISOString(),
         checkedInAt: null,
     };
-    users.unshift(newUser);
+    
     // The qr code now contains the user object itself, for easier scanning
     newUser.qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify(newUser))}`;
+
+    users.unshift(newUser);
+
     return newUser;
 }
 
@@ -32,9 +35,8 @@ export async function checkInUser(userId: string): Promise<User | null> {
         const user = users[userIndex];
         if (!user.checkedInAt) { // Prevent multiple check-ins
             user.checkedInAt = new Date().toISOString();
-            return user;
         }
-        return user; // Already checked in
+        return user; // Return user whether newly checked in or already was
     }
     return null; // User not found
 }
