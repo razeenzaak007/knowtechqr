@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScanLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface UserDashboardProps {
   initialUsers: User[];
@@ -26,52 +27,68 @@ function UserTable({
 }) {
   return (
     <div className="mt-4 rounded-lg border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Job</TableHead>
-            <TableHead>Area</TableHead>
-            <TableHead>Blood Group</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-right">Registered</TableHead>
-            <TableHead><span className="sr-only">Actions</span></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {users.length > 0 ? (
-            users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                <TableCell>{user.job}</TableCell>
-                <TableCell>{user.area}</TableCell>
-                <TableCell>{user.bloodGroup}</TableCell>
-                <TableCell>
-                  {user.checkedInAt ? (
-                    <Badge variant="secondary">Checked In</Badge>
-                  ) : (
-                    <Badge variant="outline">Registered</Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right text-muted-foreground">
-                  {format(new Date(user.createdAt), 'MMM d, yyyy h:mm a')}
-                </TableCell>
-                <TableCell className="text-right">
-                  <UserTableActions user={user} onShowQr={onShowQr} />
+      <TooltipProvider>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead className="hidden md:table-cell">Email</TableHead>
+              <TableHead className="hidden lg:table-cell">Job</TableHead>
+              <TableHead className="hidden lg:table-cell">Area</TableHead>
+              <TableHead className="hidden xl:table-cell">Blood Group</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right hidden sm:table-cell">Registered</TableHead>
+              <TableHead><span className="sr-only">Actions</span></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.length > 0 ? (
+              users.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell className="text-muted-foreground hidden md:table-cell">{user.email}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{user.job}</TableCell>
+                  <TableCell className="hidden lg:table-cell">{user.area}</TableCell>
+                  <TableCell className="hidden xl:table-cell">{user.bloodGroup}</TableCell>
+                  <TableCell>
+                    {user.checkedInAt ? (
+                       <Tooltip>
+                        <TooltipTrigger>
+                           <Badge variant="secondary">Checked In</Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{format(new Date(user.checkedInAt), 'MMM d, yyyy h:mm a')}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <Badge variant="outline">Registered</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground hidden sm:table-cell">
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <span>{format(new Date(user.createdAt), 'MMM d, yyyy')}</span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{format(new Date(user.createdAt), 'MMM d, yyyy h:mm a')}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <UserTableActions user={user} onShowQr={onShowQr} />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                  No users found.
                 </TableCell>
               </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
-                No users found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+            )}
+          </TableBody>
+        </Table>
+      </TooltipProvider>
     </div>
   );
 }
