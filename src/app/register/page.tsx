@@ -1,18 +1,15 @@
 
 'use client';
 
-import React, { useState, useEffect, useActionState, useRef } from 'react';
-import { z } from 'zod';
+import React, { useState, useEffect, useActionState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { addUserAction, type FormState } from '@/app/actions';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Download } from 'lucide-react';
 import Header from '@/components/header';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
-import { Download } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
@@ -28,23 +25,21 @@ export default function RegisterPage() {
   const [state, formAction, isPending] = useActionState(addUserAction, initialState);
   const [submittedUser, setSubmittedUser] = useState<FormState['user']>(null);
   
-  // To reset the form
-  const formRef = useRef<HTMLFormElement>(null);
-  const [formKey, setFormKey] = useState(Date.now());
-
+  // This key is used to force-reset the form fields after successful submission
+  const [formKey, setFormKey] = useState(Date.now().toString());
 
   useEffect(() => {
     if (state.message) {
       if (state.user) {
         setSubmittedUser(state.user);
-        // Reset the form by changing the key, which forces a re-mount
-        setFormKey(Date.now());
+        // Reset form by changing key
+        setFormKey(Date.now().toString());
       } else {
         setSubmittedUser(null);
         toast({
             variant: "destructive",
             title: "Registration Failed",
-            description: state.message,
+            description: state.message || state.errors?._form?.[0],
         });
       }
     }
@@ -108,7 +103,6 @@ export default function RegisterPage() {
             ) : (
                 <form 
                   key={formKey}
-                  ref={formRef}
                   action={formAction}
                   className="space-y-6"
                 >
@@ -125,9 +119,9 @@ export default function RegisterPage() {
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="bloodGroup">Blood Group</Label>
+                        <Label>Blood Group</Label>
                         <Select name="bloodGroup" required>
-                            <SelectTrigger id="bloodGroup">
+                            <SelectTrigger>
                                 <SelectValue placeholder="Select a blood group" />
                             </SelectTrigger>
                             <SelectContent>
@@ -175,6 +169,10 @@ export default function RegisterPage() {
                         <Input id="email" name="email" placeholder="e.g., jane.doe@example.com" type="email" required />
                         {state.errors?.email && <p className="text-sm font-medium text-destructive">{state.errors.email[0]}</p>}
                     </div>
+                    
+                    {state.errors?._form && (
+                        <p className="text-sm font-medium text-destructive">{state.errors._form[0]}</p>
+                    )}
 
                   <Button type="submit" disabled={isPending} className="w-full">
                     {isPending ? (

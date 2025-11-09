@@ -28,6 +28,7 @@ export type FormState = {
     job?: string[];
     area?: string[];
     whatsappNumber?: string[];
+    _form?: string[];
   };
   user: User | null;
 };
@@ -63,10 +64,14 @@ export async function addUserAction(prevState: FormState, formData: FormData): P
     };
   } catch (e) {
     console.error(e);
+    // This is a more specific error message for the form
+    const errorMessage = e instanceof Error ? e.message : 'An unexpected error occurred.';
     return {
-      message: 'An unexpected error occurred. Failed to add user.',
+      message: 'Database error: Failed to add user.',
       user: null,
-      errors: {}
+      errors: {
+        _form: [errorMessage]
+      }
     };
   }
 }
