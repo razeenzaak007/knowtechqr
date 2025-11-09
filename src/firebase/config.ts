@@ -1,10 +1,13 @@
 
+// IMPORTANT: This line ensures environment variables are loaded before Firebase is initialized.
+require('dotenv').config({ path: './.env' });
+
 // Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 
 // Your web app's Firebase configuration
-// IMPORTANT: Replace this with your actual Firebase project configuration
+// It is sourced from the .env file.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_AUTH_DOMAIN,
@@ -14,9 +17,9 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_APP_ID
 };
 
-
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// This pattern prevents re-initializing the app on hot-reloads
+const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
 
 export { db };
