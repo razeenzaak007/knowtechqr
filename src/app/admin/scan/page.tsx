@@ -144,7 +144,7 @@ export default function ScanPage() {
                     <AlertDescription className="text-green-700">
                         <p><span className="font-semibold">{scannedUser.name}</span> has been checked in.</p>
                         <p className="text-sm">Email: {scannedUser.email}</p>
-                        <p className="text-sm">Class: {scannedUser.class}</p>
+                        <p className="text-sm">Job: {scannedUser.job}</p>
                         {scannedUser.checkedInAt && <p className="text-xs mt-1">Checked in at: {new Date(scannedUser.checkedInAt).toLocaleTimeString()}</p>}
                     </AlertDescription>
                 </Alert>

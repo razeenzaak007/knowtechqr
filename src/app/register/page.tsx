@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import React, { useState, useTransition } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -14,11 +14,18 @@ import Header from '@/components/header';
 import { useToast } from "@/hooks/use-toast";
 import Image from 'next/image';
 import { Download } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 const UserSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  age: z.coerce.number().min(1, { message: 'Please enter a valid age.' }),
+  bloodGroup: z.string({ required_error: 'Blood group is required.' }).min(1, 'Blood group is required.'),
+  gender: z.string({ required_error: 'Please select a gender.' }),
+  job: z.string().min(2, { message: 'Job must be at least 2 characters.' }),
+  area: z.string().min(2, { message: 'Area must be at least 2 characters.' }),
+  whatsappNumber: z.string().min(8, { message: 'Please enter a valid WhatsApp number.' }),
   email: z.string().email({ message: 'Please enter a valid email address.' }),
-  class: z.string().min(3, { message: 'Class/Course must be at least 3 characters.' }),
 });
 
 type FormData = z.infer<typeof UserSchema>;
@@ -34,14 +41,14 @@ export default function RegisterPage() {
 
   const form = useForm<FormData>({
     resolver: zodResolver(UserSchema),
-    defaultValues: { name: '', email: '', class: '' },
+    defaultValues: { name: '', email: '', whatsappNumber: '', area: '', job: '', age: 0 },
   });
 
   const onSubmit = (data: FormData) => {
     const formData = new FormData();
-    formData.append('name', data.name);
-    formData.append('email', data.email);
-    formData.append('class', data.class);
+    Object.keys(data).forEach(key => {
+      formData.append(key, (data as any)[key]);
+    });
 
     startTransition(async () => {
       const result = await addUserAction(null, formData);
@@ -53,9 +60,13 @@ export default function RegisterPage() {
         });
         form.reset();
       } else if (result && result.errors) {
-        if (result.errors.name) form.setError('name', { type: 'server', message: result.errors.name[0] });
-        if (result.errors.email) form.setError('email', { type: 'server', message: result.errors.email[0] });
-        if (result.errors.class) form.setError('class', { type: 'server', message: result.errors.class[0] });
+        Object.keys(result.errors).forEach((key) => {
+          const field = key as keyof FormData;
+          const message = result.errors?.[field]?.[0]
+          if (message) {
+             form.setError(field, { type: 'server', message });
+          }
+        });
         
         toast({
             variant: "destructive",
@@ -76,6 +87,8 @@ export default function RegisterPage() {
     link.click();
     document.body.removeChild(link);
   };
+  
+  const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -118,10 +131,7 @@ export default function RegisterPage() {
             ) : (
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
+                  <FormField control={form.control} name="name" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Full Name</FormLabel>
                         <FormControl><Input placeholder="e.g., Jane Doe" {...field} /></FormControl>
@@ -129,24 +139,80 @@ export default function RegisterPage() {
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
+                   <FormField control={form.control} name="age" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl><Input placeholder="e.g., jane.doe@example.com" type="email" {...field} /></FormControl>
+                        <FormLabel>Age</FormLabel>
+                        <FormControl><Input type="number" placeholder="e.g., 25" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="class"
-                    render={({ field }) => (
+                  <FormField control={form.control} name="bloodGroup" render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Blood Group</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a blood group" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}/>
+                   <FormField control={form.control} name="gender" render={({ field }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>Gender</FormLabel>
+                      <FormControl>
+                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl><RadioGroupItem value="male" /></FormControl>
+                            <FormLabel className="font-normal">Male</FormLabel>
+                          </FormItem>
+                          <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl><RadioGroupItem value="female" /></FormControl>
+                            <FormLabel className="font-normal">Female</FormLabel>
+                          </FormItem>
+                           <FormItem className="flex items-center space-x-3 space-y-0">
+                            <FormControl><RadioGroupItem value="other" /></FormControl>
+                            <FormLabel className="font-normal">Other</FormLabel>
+                          </FormItem>
+                        </RadioGroup>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )} />
+                   <FormField control={form.control} name="job" render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Class / Course</FormLabel>
-                        <FormControl><Input placeholder="e.g., Introduction to Art" {...field} /></FormControl>
+                        <FormLabel>Job</FormLabel>
+                        <FormControl><Input placeholder="e.g., Software Engineer" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField control={form.control} name="area" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Area in Kuwait</FormLabel>
+                        <FormControl><Input placeholder="e.g., Salmiya" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                   <FormField control={form.control} name="whatsappNumber" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>WhatsApp Number</FormLabel>
+                        <FormControl><Input type="tel" placeholder="e.g., 99xxxxxx" {...field} /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField control={form.control} name="email" render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email Address</FormLabel>
+                        <FormControl><Input placeholder="e.g., jane.doe@example.com" type="email" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

@@ -31,7 +31,7 @@ function UserTable({
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead className="hidden sm:table-cell">Email</TableHead>
-            <TableHead>Class</TableHead>
+            <TableHead>Job</TableHead>
             <TableHead className="hidden md:table-cell">Status</TableHead>
             <TableHead className="hidden md:table-cell text-right">Registered</TableHead>
             <TableHead><span className="sr-only">Actions</span></TableHead>
@@ -43,7 +43,7 @@ function UserTable({
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell className="hidden sm:table-cell text-muted-foreground">{user.email}</TableCell>
-                <TableCell>{user.class}</TableCell>
+                <TableCell>{user.job}</TableCell>
                 <TableCell className="hidden md:table-cell">
                   {user.checkedInAt ? (
                     <Badge variant="secondary">Checked In</Badge>
@@ -79,10 +79,14 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
   
   const filteredUsers = useMemo(() => {
+    const searchTerm = search.toLowerCase();
     return initialUsers.filter(user =>
-      user.name.toLowerCase().includes(search.toLowerCase()) ||
-      user.email.toLowerCase().includes(search.toLowerCase()) ||
-      user.class.toLowerCase().includes(search.toLowerCase())
+      user.name.toLowerCase().includes(searchTerm) ||
+      user.email.toLowerCase().includes(searchTerm) ||
+      user.job.toLowerCase().includes(searchTerm) ||
+      user.area.toLowerCase().includes(searchTerm) ||
+      user.bloodGroup.toLowerCase().includes(searchTerm) ||
+      user.gender.toLowerCase().includes(searchTerm)
     );
   }, [search, initialUsers]);
 
@@ -124,7 +128,7 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
             </TabsList>
             <div className="w-full sm:w-auto">
                 <Input
-                placeholder="Search by name, email, or class..."
+                placeholder="Search..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full sm:max-w-sm"

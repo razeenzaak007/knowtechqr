@@ -49,7 +49,7 @@ export function QrCodeDialog({ user, open, onOpenChange }: QrCodeDialogProps) {
         </div>
         <div className="text-sm space-y-1 text-muted-foreground">
             <p><span className="font-semibold text-foreground">Email:</span> {user.email}</p>
-            <p><span className="font-semibold text-foreground">Class:</span> {user.class}</p>
+            <p><span className="font-semibold text-foreground">Job:</span> {user.job}</p>
         </div>
         <DialogFooter className="sm:justify-between gap-2 flex-col-reverse sm:flex-row">
             <Button variant="outline" onClick={handleDownload}>
