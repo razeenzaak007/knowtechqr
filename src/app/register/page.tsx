@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useActionState } from 'react';
+import React, { useState, useEffect, useActionState, useRef } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -41,26 +41,19 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const [state, formAction, isPending] = useActionState(addUserAction, initialState);
   const [submittedUser, setSubmittedUser] = useState<FormState['user']>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(UserSchema),
     defaultValues: { name: '', email: '', whatsappNumber: '', area: '', job: '', age: 0, bloodGroup: '', gender: '' },
   });
-  
-  const onSubmit = (data: FormData) => {
-    const formData = new FormData();
-    Object.keys(data).forEach(key => {
-        const value = (data as any)[key];
-        formData.append(key, String(value));
-    });
-    formAction(formData);
-  };
 
   useEffect(() => {
     if (state.message) {
       if (state.user) {
         setSubmittedUser(state.user);
         form.reset();
+        formRef.current?.reset();
       } else {
         setSubmittedUser(null);
         toast({
@@ -141,7 +134,11 @@ export default function RegisterPage() {
               </div>
             ) : (
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form 
+                  ref={formRef}
+                  action={form.handleSubmit(() => formAction(new FormData(formRef.current!)))} 
+                  className="space-y-6"
+                >
                   <FormField control={form.control} name="name" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Full Name</FormLabel>
