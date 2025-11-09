@@ -57,12 +57,11 @@ export default function RegisterPage() {
   };
 
   useEffect(() => {
-    if (state?.message) {
+    if (state.message) {
       if (state.user) {
         setSubmittedUser(state.user);
         form.reset();
       } else {
-        // Handle server-side errors (validation or otherwise)
         setSubmittedUser(null);
         toast({
             variant: "destructive",
@@ -70,7 +69,6 @@ export default function RegisterPage() {
             description: state.message,
         });
 
-        // Clear previous errors before setting new ones
         form.clearErrors();
         if (state.errors) {
             Object.keys(state.errors).forEach((key) => {
@@ -209,7 +207,7 @@ export default function RegisterPage() {
                    <FormField control={form.control} name="area" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Area in Kuwait</FormLabel>
-                        <FormControl><Input placeholder-text="e.g., Salmiya" {...field} /></FormControl>
+                        <FormControl><Input placeholder="e.g., Salmiya" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
