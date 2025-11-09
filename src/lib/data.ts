@@ -1,4 +1,5 @@
 
+import 'dotenv/config';
 import { collection, addDoc, getDocs, query, where, updateDoc, doc, getDoc, orderBy, Timestamp } from 'firebase/firestore';
 import { db } from '@/firebase/config';
 import type { User } from './types';
