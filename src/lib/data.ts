@@ -1,98 +1,91 @@
-
-import 'dotenv/config';
-import { collection, addDoc, getDocs, query, where, updateDoc, doc, getDoc, orderBy, Timestamp } from 'firebase/firestore';
-import { db } from '@/firebase/config';
+import fs from 'fs/promises';
+import path from 'path';
 import type { User } from './types';
 
-// Functions to interact with the Firestore 'users' collection
+// Path to the JSON file that will act as our database
+const DB_PATH = path.join(process.cwd(), 'src', 'lib', 'db.json');
+
+// Type guard for our database structure
+type Database = {
+  users: User[];
+};
+
+// Function to read the database file
+async function readDB(): Promise<Database> {
+  try {
+    const data = await fs.readFile(DB_PATH, 'utf-8');
+    const db = JSON.parse(data) as Database;
+    // Basic validation to ensure the 'users' array exists
+    if (!Array.isArray(db.users)) {
+        return { users: [] };
+    }
+    return db;
+  } catch (error) {
+    // If the file doesn't exist or is empty/corrupt, return a default structure
+    return { users: [] };
+  }
+}
+
+// Function to write to the database file
+async function writeDB(db: Database): Promise<void> {
+  await fs.writeFile(DB_PATH, JSON.stringify(db, null, 2), 'utf-8');
+}
+
+
 export async function getUsers(): Promise<User[]> {
   try {
-    const usersCol = collection(db, 'users');
-    const q = query(usersCol, orderBy('createdAt', 'desc'));
-    const userSnapshot = await getDocs(q);
-    const userList = userSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-            id: doc.id,
-            ...data,
-            createdAt: (data.createdAt as Timestamp).toDate().toISOString(),
-             checkedInAt: data.checkedInAt ? (data.checkedInAt as Timestamp).toDate().toISOString() : null,
-        } as User;
-    });
-    return userList;
+    const db = await readDB();
+    // Sort users by creation date, descending (newest first)
+    return db.users.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   } catch (error) {
     console.error("Error fetching users:", error);
-    // Propagate the error for the UI to handle if needed
     throw new Error('Failed to fetch users from the database.');
   }
 }
 
 export async function addUser(user: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' | 'checkedInAt'>): Promise<User> {
     try {
-        const newUserPayload = {
+        const db = await readDB();
+        
+        // Generate a unique ID and QR code URL
+        const newId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: newId }))}`;
+
+        const newUser: User = {
             ...user,
-            createdAt: Timestamp.now(),
+            id: newId,
+            createdAt: new Date().toISOString(),
             checkedInAt: null,
-            qrCodeUrl: '', // Start with an empty qrCodeUrl
+            qrCodeUrl: qrCodeUrl,
         };
         
-        const docRef = await addDoc(collection(db, "users"), newUserPayload);
-        
-        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: docRef.id }))}`;
-
-        // Now, update the document with the generated QR code URL.
-        await updateDoc(doc(db, "users", docRef.id), {
-          qrCodeUrl: qrCodeUrl,
-        });
-        
-        // Fetch the complete document from Firestore to ensure all data is consistent
-        const newUserDoc = await getDoc(doc(db, 'users', docRef.id));
-        const newUserData = newUserDoc.data();
-
-        if (!newUserData) {
-            throw new Error("Failed to retrieve newly created user.");
-        }
-        
-        const newUser: User = {
-            id: newUserDoc.id,
-            ...newUserData,
-            createdAt: (newUserData.createdAt as Timestamp).toDate().toISOString(),
-            checkedInAt: newUserData.checkedInAt ? (newUserData.checkedInAt as Timestamp).toDate().toISOString() : null,
-        } as User;
+        db.users.push(newUser);
+        await writeDB(db);
         
         return newUser;
     } catch (error) {
         console.error("Error adding user:", error);
-        // This will be caught by the server action and displayed to the user.
         throw new Error('Could not save user to the database. Please try again.');
     }
 }
 
 export async function checkInUser(userId: string): Promise<User | null> {
     try {
-        const userRef = doc(db, "users", userId);
-        const userDoc = await getDoc(userRef);
+        const db = await readDB();
+        const userIndex = db.users.findIndex(u => u.id === userId);
 
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            if (!userData.checkedInAt) { // Prevent multiple check-ins
-                await updateDoc(userRef, {
-                    checkedInAt: Timestamp.now()
-                });
+        if (userIndex > -1) {
+            const user = db.users[userIndex];
+            
+            // Only check-in if they haven't been already
+            if (!user.checkedInAt) {
+                user.checkedInAt = new Date().toISOString();
+                await writeDB(db);
             }
-            // Refetch to get the updated document
-            const updatedUserDoc = await getDoc(userRef);
-            const updatedData = updatedUserDoc.data();
-            if (!updatedData) {
-                return null;
-            }
-            return {
-                id: updatedUserDoc.id,
-                ...updatedData,
-                 createdAt: (updatedData.createdAt as Timestamp).toDate().toISOString(),
-                 checkedInAt: updatedData.checkedInAt ? (updatedData.checkedInAt as Timestamp).toDate().toISOString() : null,
-            } as User;
+            
+            return user;
         }
+        
         return null; // User not found
     } catch (error) {
         console.error("Error checking in user:", error);
