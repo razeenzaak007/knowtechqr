@@ -137,7 +137,6 @@ export default function RegisterPage() {
                 <form 
                   ref={formRef}
                   action={formAction}
-                  onSubmit={form.handleSubmit(() => { /* No-op, action is handled by the form's action prop */})}
                   className="space-y-6"
                 >
                   <FormField control={form.control} name="name" render={({ field }) => (
