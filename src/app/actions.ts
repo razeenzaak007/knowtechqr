@@ -10,7 +10,7 @@ const UserSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   age: z.coerce.number().min(1, { message: 'Please enter a valid age.' }),
   bloodGroup: z.string({ required_error: 'Blood group is required.' }).min(1, 'Blood group is required.'),
-  gender: z.string({ required_error: 'Please select a gender.' }),
+  gender: z.string({ required_error: 'Please select a gender.' }).min(1, 'Please select a gender.'),
   job: z.string().min(2, { message: 'Job must be at least 2 characters.' }),
   area: z.string().min(2, { message: 'Area must be at least 2 characters.' }),
   whatsappNumber: z.string().min(8, { message: 'Please enter a valid WhatsApp number.' }),
