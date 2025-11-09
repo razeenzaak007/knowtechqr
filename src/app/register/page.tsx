@@ -1,7 +1,7 @@
 
 'use client';
 
-import React, { useState, useEffect, useActionState } from 'react';
+import React, { useState, useEffect, useActionState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,26 +24,32 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const [state, formAction, isPending] = useActionState(addUserAction, initialState);
   const [submittedUser, setSubmittedUser] = useState<FormState['user']>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   
   // This key is used to force-reset the form fields after successful submission
   const [formKey, setFormKey] = useState(Date.now().toString());
 
   useEffect(() => {
-    if (state.message) {
+    if (!isPending && state.message) {
       if (state.user) {
         setSubmittedUser(state.user);
-        // Reset form by changing key
-        setFormKey(Date.now().toString());
+        toast({
+            title: "Registration Successful!",
+            description: "Your QR code has been generated."
+        });
+        formRef.current?.reset();
+        // Also reset the visual state for controlled components like Select
+        setFormKey(Date.now().toString()); 
       } else {
         setSubmittedUser(null);
         toast({
             variant: "destructive",
             title: "Registration Failed",
-            description: state.message || state.errors?._form?.[0],
+            description: state.message || state.errors?._form?.[0] || "An unknown error occurred.",
         });
       }
     }
-  }, [state, toast]);
+  }, [state, isPending, toast]);
 
   const handleDownload = () => {
     if (!submittedUser?.qrCodeUrl) return;
@@ -103,6 +109,7 @@ export default function RegisterPage() {
             ) : (
                 <form 
                   key={formKey}
+                  ref={formRef}
                   action={formAction}
                   className="space-y-6"
                 >

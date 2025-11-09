@@ -63,14 +63,13 @@ export async function addUserAction(prevState: FormState, formData: FormData): P
         errors: {}
     };
   } catch (e) {
-    console.error(e);
-    // This is a more specific error message for the form
+    console.error('addUserAction error:', e);
     const errorMessage = e instanceof Error ? e.message : 'An unexpected error occurred.';
     return {
-      message: 'Database error: Failed to add user.',
+      message: `Database error: ${errorMessage}`,
       user: null,
       errors: {
-        _form: [errorMessage]
+        _form: [`Database error: ${errorMessage}`]
       }
     };
   }
