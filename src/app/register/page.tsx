@@ -136,7 +136,8 @@ export default function RegisterPage() {
               <Form {...form}>
                 <form 
                   ref={formRef}
-                  action={form.handleSubmit(() => formAction(new FormData(formRef.current!)))} 
+                  action={formAction}
+                  onSubmit={form.handleSubmit(() => formAction(new FormData(formRef.current!)))}
                   className="space-y-6"
                 >
                   <FormField control={form.control} name="name" render={({ field }) => (
@@ -175,7 +176,7 @@ export default function RegisterPage() {
                     <FormItem className="space-y-3">
                       <FormLabel>Gender</FormLabel>
                       <FormControl>
-                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex flex-col space-y-1">
+                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex space-x-4">
                           <FormItem className="flex items-center space-x-3 space-y-0">
                             <FormControl><RadioGroupItem value="male" /></FormControl>
                             <FormLabel className="font-normal">Male</FormLabel>
