@@ -1,15 +1,19 @@
 
+'use client';
+
 import Header from '@/components/header';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { useState, useEffect } from 'react';
 
 export default function Home() {
-  // Use environment variable for a stable, public URL.
-  // This defaults to the standard Firebase Hosting URL format.
-  const projectId = process.env.NEXT_PUBLIC_PROJECT_ID || 'your-project-id';
-  const registerUrl = `https://${projectId}.web.app/register`;
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(registerUrl)}`;
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+
+  useEffect(() => {
+    const registerUrl = `${window.location.origin}/register`;
+    setQrCodeUrl(`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(registerUrl)}`);
+  }, []);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
