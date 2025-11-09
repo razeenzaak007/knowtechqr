@@ -31,11 +31,11 @@ function UserTable({
           <TableRow>
             <TableHead>Name</TableHead>
             <TableHead>Email</TableHead>
-            <TableHead className="hidden lg:table-cell">Job</TableHead>
-            <TableHead className="hidden lg:table-cell">Area</TableHead>
-            <TableHead className="hidden xl:table-cell">Blood Group</TableHead>
-            <TableHead className="hidden xl:table-cell">Status</TableHead>
-            <TableHead className="hidden xl:table-cell text-right">Registered</TableHead>
+            <TableHead>Job</TableHead>
+            <TableHead>Area</TableHead>
+            <TableHead>Blood Group</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Registered</TableHead>
             <TableHead><span className="sr-only">Actions</span></TableHead>
           </TableRow>
         </TableHeader>
@@ -45,17 +45,17 @@ function UserTable({
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.name}</TableCell>
                 <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                <TableCell className="hidden lg:table-cell">{user.job}</TableCell>
-                <TableCell className="hidden lg:table-cell">{user.area}</TableCell>
-                <TableCell className="hidden xl:table-cell">{user.bloodGroup}</TableCell>
-                <TableCell className="hidden xl:table-cell">
+                <TableCell>{user.job}</TableCell>
+                <TableCell>{user.area}</TableCell>
+                <TableCell>{user.bloodGroup}</TableCell>
+                <TableCell>
                   {user.checkedInAt ? (
                     <Badge variant="secondary">Checked In</Badge>
                   ) : (
                     <Badge variant="outline">Registered</Badge>
                   )}
                 </TableCell>
-                <TableCell className="hidden xl:table-cell text-right text-muted-foreground">
+                <TableCell className="text-right text-muted-foreground">
                   {format(new Date(user.createdAt), 'MMM d, yyyy h:mm a')}
                 </TableCell>
                 <TableCell className="text-right">
