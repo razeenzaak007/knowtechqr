@@ -48,6 +48,9 @@ export default function RegisterPage() {
     defaultValues: { name: '', email: '', whatsappNumber: '', area: '', job: '', age: 0, bloodGroup: '', gender: '' },
   });
 
+  const bloodGroupValue = form.watch('bloodGroup');
+  const genderValue = form.watch('gender');
+
   useEffect(() => {
     if (state.message) {
       if (state.user) {
@@ -158,6 +161,7 @@ export default function RegisterPage() {
                   <FormField control={form.control} name="bloodGroup" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Blood Group</FormLabel>
+                       <input type="hidden" name="bloodGroup" value={bloodGroupValue} />
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -174,6 +178,7 @@ export default function RegisterPage() {
                    <FormField control={form.control} name="gender" render={({ field }) => (
                     <FormItem className="space-y-3">
                       <FormLabel>Gender</FormLabel>
+                      <input type="hidden" name="gender" value={genderValue} />
                       <FormControl>
                         <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex space-x-4">
                           <FormItem className="flex items-center space-x-3 space-y-0">
