@@ -209,7 +209,7 @@ export default function RegisterPage() {
                    <FormField control={form.control} name="area" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Area in Kuwait</FormLabel>
-                        <FormControl><Input placeholder="e.g., Salmiya" {...field} /></FormControl>
+                        <FormControl><Input placeholder-text="e.g., Salmiya" {...field} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}

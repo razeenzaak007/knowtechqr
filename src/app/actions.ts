@@ -30,7 +30,7 @@ export type FormState = {
     whatsappNumber?: string[];
   };
   user: User | null;
-} | null;
+};
 
 
 export async function addUserAction(prevState: FormState, formData: FormData): Promise<FormState> {

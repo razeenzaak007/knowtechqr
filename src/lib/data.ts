@@ -1,6 +1,6 @@
 
 import { collection, addDoc, getDocs, query, where, updateDoc, doc, getDoc, orderBy, Timestamp } from 'firebase/firestore';
-import { db } from '@/firebase/config'; // I'll create this file
+import { db } from '@/firebase/config';
 import type { User } from './types';
 
 // Functions to interact with the Firestore 'users' collection
@@ -42,13 +42,20 @@ export async function addUser(user: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' 
       qrCodeUrl: qrCodeUrl,
     });
     
+    // Fetch the complete document from Firestore to ensure all data is consistent
+    const newUserDoc = await getDoc(doc(db, 'users', docRef.id));
+    const newUserData = newUserDoc.data();
+
+    if (!newUserData) {
+        throw new Error("Failed to retrieve newly created user.");
+    }
+    
     const newUser: User = {
-        id: docRef.id,
-        ...user,
-        qrCodeUrl: qrCodeUrl,
-        createdAt: newUserPayload.createdAt.toDate().toISOString(),
-        checkedInAt: null,
-    };
+        id: newUserDoc.id,
+        ...newUserData,
+        createdAt: (newUserData.createdAt as Timestamp).toDate().toISOString(),
+        checkedInAt: newUserData.checkedInAt ? (newUserData.checkedInAt as Timestamp).toDate().toISOString() : null,
+    } as User;
     
     return newUser;
 }
