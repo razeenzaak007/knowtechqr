@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import type { User } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,6 +13,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScanLine } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
+// New component to safely render dates on the client
+function ClientFormattedDate({ dateString, formatString }: { dateString: string; formatString: string; }) {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
+    if (!mounted) {
+        // Render a placeholder or nothing on the server and initial client render
+        return null; 
+    }
+
+    return <span>{format(new Date(dateString), formatString)}</span>;
+}
+
 
 interface UserDashboardProps {
   initialUsers: User[];
@@ -57,7 +71,7 @@ function UserTable({
                            <Badge variant="secondary">Checked In</Badge>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{format(new Date(user.checkedInAt), 'MMM d, yyyy h:mm a')}</p>
+                          <ClientFormattedDate dateString={user.checkedInAt} formatString='MMM d, yyyy h:mm a' />
                         </TooltipContent>
                       </Tooltip>
                     ) : (
@@ -67,10 +81,10 @@ function UserTable({
                   <TableCell className="text-right text-muted-foreground hidden sm:table-cell">
                     <Tooltip>
                       <TooltipTrigger>
-                        <span>{format(new Date(user.createdAt), 'MMM d, yyyy')}</span>
+                         <ClientFormattedDate dateString={user.createdAt} formatString='MMM d, yyyy' />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>{format(new Date(user.createdAt), 'MMM d, yyyy h:mm a')}</p>
+                        <ClientFormattedDate dateString={user.createdAt} formatString='MMM d, yyyy h:mm a' />
                       </TooltipContent>
                     </Tooltip>
                   </TableCell>
