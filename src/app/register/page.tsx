@@ -39,18 +39,18 @@ const initialState: FormState = {
 export default function RegisterPage() {
   const { toast } = useToast();
   const [state, formAction, isPending] = useActionState(addUserAction, initialState);
-  const [submitted, setSubmitted] = useState(false);
+  const [submittedUser, setSubmittedUser] = useState<FormState['user']>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(UserSchema),
-    defaultValues: { name: '', email: '', whatsappNumber: '', area: '', job: '', age: 0 },
+    defaultValues: { name: '', email: '', whatsappNumber: '', area: '', job: '', age: 0, bloodGroup: '', gender: '' },
   });
   
   const onSubmit = (data: FormData) => {
     const formData = new FormData();
     Object.keys(data).forEach(key => {
         const value = (data as any)[key];
-        formData.append(key, value);
+        formData.append(key, String(value));
     });
     formAction(formData);
   };
@@ -58,7 +58,7 @@ export default function RegisterPage() {
   useEffect(() => {
     if (state.message) {
         if (state.user) {
-            setSubmitted(true);
+            setSubmittedUser(state.user);
             form.reset();
         } else {
             toast({
@@ -80,16 +80,21 @@ export default function RegisterPage() {
   }, [state, form, toast]);
 
   const handleDownload = () => {
-    if (!state.user?.qrCodeUrl) return;
+    if (!submittedUser?.qrCodeUrl) return;
     const link = document.createElement('a');
-    link.href = state.user.qrCodeUrl;
-    link.download = `qrcode-${state.user.name?.replace(/\s+/g, '-').toLowerCase()}.png`;
+    link.href = submittedUser.qrCodeUrl;
+    link.download = `qrcode-${submittedUser.name?.replace(/\s+/g, '-').toLowerCase()}.png`;
     link.target = '_blank';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
   
+  const handleRegisterAnother = () => {
+    setSubmittedUser(null);
+    form.reset();
+  };
+
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
   return (
@@ -102,17 +107,17 @@ export default function RegisterPage() {
             <CardDescription>Fill out the form below to register. Your QR code will be generated upon submission.</CardDescription>
           </CardHeader>
           <CardContent>
-            {submitted && state.user ? (
+            {submittedUser ? (
               <div className="flex flex-col items-center justify-center text-center space-y-4 py-8">
                  <h2 className="text-2xl font-bold">Registration Successful!</h2>
                 <p className="text-muted-foreground">
                   Here is your unique QR code for entry. Please save it.
                 </p>
-                {state.user.qrCodeUrl && (
+                {submittedUser.qrCodeUrl && (
                   <div className="flex items-center justify-center p-6 bg-muted/50 rounded-lg border">
                     <Image
-                      src={state.user.qrCodeUrl}
-                      alt={`QR Code for ${state.user.name}`}
+                      src={submittedUser.qrCodeUrl}
+                      alt={`QR Code for ${submittedUser.name}`}
                       width={250}
                       height={250}
                       className="rounded-lg shadow-md"
@@ -125,7 +130,7 @@ export default function RegisterPage() {
                     <Download className="mr-2 h-4 w-4" />
                     Download QR Code
                   </Button>
-                  <Button onClick={() => setSubmitted(false)} variant="secondary" size="lg">
+                  <Button onClick={handleRegisterAnother} variant="secondary" size="lg">
                     Register Another
                   </Button>
                 </div>
@@ -144,7 +149,7 @@ export default function RegisterPage() {
                    <FormField control={form.control} name="age" render={({ field }) => (
                       <FormItem>
                         <FormLabel>Age</FormLabel>
-                        <FormControl><Input type="number" placeholder="e.g., 25" {...field} /></FormControl>
+                        <FormControl><Input type="number" placeholder="e.g., 25" {...field} value={field.value === 0 ? '' : field.value} /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
