@@ -1,3 +1,4 @@
+
 "use server";
 
 import { z } from 'zod';
@@ -60,6 +61,7 @@ export async function addUserAction(prevState: FormState, formData: FormData) {
         errors: {}
     };
   } catch (e) {
+    console.error(e);
     return {
       message: 'An unexpected error occurred. Failed to add user.',
       user: null,
@@ -77,6 +79,7 @@ export async function checkInUserAction(userId: string) {
     }
     return { success: false, message: 'User not found.' };
   } catch (error) {
+    console.error(error);
     return { success: false, message: 'An error occurred during check-in.' };
   }
 }

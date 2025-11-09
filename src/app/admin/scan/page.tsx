@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import jsQR from 'jsqr';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -89,9 +89,10 @@ export default function ScanPage() {
     setScanError(null);
     setScannedUser(null);
     try {
-      const userData: User = JSON.parse(data);
-      if (userData && userData.id) {
-        const result = await checkInUserAction(userData.id);
+      // The QR code data is expected to be a JSON string like {"id":"..."}
+      const qrData = JSON.parse(data);
+      if (qrData && qrData.id) {
+        const result = await checkInUserAction(qrData.id);
         if (result.success && result.user) {
           setScannedUser(result.user);
            toast({
@@ -99,12 +100,13 @@ export default function ScanPage() {
             description: `${result.user.name} has been checked in.`,
           });
         } else {
-          setScanError(result.message || 'Failed to check-in user.');
+          setScanError(result.message || 'Failed to check-in user. User not found in database.');
         }
       } else {
-        setScanError('Invalid QR Code. The scanned code does not contain valid user data.');
+        setScanError('Invalid QR Code. The scanned code does not contain a valid user ID.');
       }
     } catch (error) {
+      console.error("Scan error:", error);
       setScanError('Invalid QR Code format. Please scan a valid registration QR code.');
     }
   };
@@ -145,7 +147,7 @@ export default function ScanPage() {
                         <p><span className="font-semibold">{scannedUser.name}</span> has been checked in.</p>
                         <p className="text-sm">Email: {scannedUser.email}</p>
                         <p className="text-sm">Job: {scannedUser.job}</p>
-                        {scannedUser.checkedInAt && <p className="text-xs mt-1">Checked in at: {new Date(scannedUser.checkedInAt).toLocaleTimeString()}</p>}
+                        {scannedUser.checkedInAt && <p className="text-xs mt-1">Checked in at: {new Date(scannedUser.checkedInAt).toLocaleString()}</p>}
                     </AlertDescription>
                 </Alert>
             )}
