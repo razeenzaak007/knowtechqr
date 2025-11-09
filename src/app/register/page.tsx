@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useEffect } from 'react';
-import { useFormState } from 'react-dom';
+import React, { useState, useTransition, useEffect, useActionState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -39,8 +38,7 @@ const initialState: FormState = {
 
 export default function RegisterPage() {
   const { toast } = useToast();
-  const [state, formAction] = useFormState(addUserAction, initialState);
-  const [isPending, startTransition] = useTransition();
+  const [state, formAction, isPending] = useActionState(addUserAction, initialState);
   const [submitted, setSubmitted] = useState(false);
 
   const form = useForm<FormData>({
@@ -54,10 +52,7 @@ export default function RegisterPage() {
         const value = (data as any)[key];
         formData.append(key, value);
     });
-
-    startTransition(() => {
-        formAction(formData);
-    });
+    formAction(formData);
   };
 
   useEffect(() => {
