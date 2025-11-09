@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useEffect } from 'react';
+import { useFormState } from 'react-dom';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -8,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { addUserAction } from '@/app/actions';
+import { addUserAction, type FormState } from '@/app/actions';
 import { Loader2 } from 'lucide-react';
 import Header from '@/components/header';
 import { useToast } from "@/hooks/use-toast";
@@ -30,58 +31,64 @@ const UserSchema = z.object({
 
 type FormData = z.infer<typeof UserSchema>;
 
+const initialState: FormState = {
+  message: '',
+  user: null,
+  errors: {},
+};
+
 export default function RegisterPage() {
   const { toast } = useToast();
+  const [state, formAction] = useFormState(addUserAction, initialState);
   const [isPending, startTransition] = useTransition();
-  const [submissionState, setSubmissionState] = useState<{
-    submitted: boolean;
-    qrCodeUrl?: string;
-    userName?: string;
-  }>({ submitted: false });
+  const [submitted, setSubmitted] = useState(false);
 
   const form = useForm<FormData>({
     resolver: zodResolver(UserSchema),
     defaultValues: { name: '', email: '', whatsappNumber: '', area: '', job: '', age: 0 },
   });
-
+  
   const onSubmit = (data: FormData) => {
     const formData = new FormData();
     Object.keys(data).forEach(key => {
-      formData.append(key, (data as any)[key]);
+        const value = (data as any)[key];
+        formData.append(key, value);
     });
 
-    startTransition(async () => {
-      const result = await addUserAction(null, formData);
-      if (result && result.user) {
-        setSubmissionState({ 
-          submitted: true, 
-          qrCodeUrl: result.user.qrCodeUrl, 
-          userName: result.user.name 
-        });
-        form.reset();
-      } else if (result && result.errors) {
-        Object.keys(result.errors).forEach((key) => {
-          const field = key as keyof FormData;
-          const message = result.errors?.[field]?.[0]
-          if (message) {
-             form.setError(field, { type: 'server', message });
-          }
-        });
-        
-        toast({
-            variant: "destructive",
-            title: "Registration Failed",
-            description: result.message,
-        });
-      }
+    startTransition(() => {
+        formAction(formData);
     });
   };
 
+  useEffect(() => {
+    if (state.message) {
+        if (state.user) {
+            setSubmitted(true);
+            form.reset();
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Registration Failed",
+                description: state.message,
+            });
+            if (state.errors) {
+                Object.keys(state.errors).forEach((key) => {
+                    const field = key as keyof FormData;
+                    const message = state.errors?.[field]?.[0]
+                    if (message) {
+                        form.setError(field, { type: 'server', message });
+                    }
+                });
+            }
+        }
+    }
+  }, [state, form, toast]);
+
   const handleDownload = () => {
-    if (!submissionState.qrCodeUrl) return;
+    if (!state.user?.qrCodeUrl) return;
     const link = document.createElement('a');
-    link.href = submissionState.qrCodeUrl;
-    link.download = `qrcode-${submissionState.userName?.replace(/\s+/g, '-').toLowerCase()}.png`;
+    link.href = state.user.qrCodeUrl;
+    link.download = `qrcode-${state.user.name?.replace(/\s+/g, '-').toLowerCase()}.png`;
     link.target = '_blank';
     document.body.appendChild(link);
     link.click();
@@ -100,17 +107,17 @@ export default function RegisterPage() {
             <CardDescription>Fill out the form below to register. Your QR code will be generated upon submission.</CardDescription>
           </CardHeader>
           <CardContent>
-            {submissionState.submitted ? (
+            {submitted && state.user ? (
               <div className="flex flex-col items-center justify-center text-center space-y-4 py-8">
                  <h2 className="text-2xl font-bold">Registration Successful!</h2>
                 <p className="text-muted-foreground">
                   Here is your unique QR code for entry. Please save it.
                 </p>
-                {submissionState.qrCodeUrl && (
+                {state.user.qrCodeUrl && (
                   <div className="flex items-center justify-center p-6 bg-muted/50 rounded-lg border">
                     <Image
-                      src={submissionState.qrCodeUrl}
-                      alt={`QR Code for ${submissionState.userName}`}
+                      src={state.user.qrCodeUrl}
+                      alt={`QR Code for ${state.user.name}`}
                       width={250}
                       height={250}
                       className="rounded-lg shadow-md"
@@ -123,7 +130,7 @@ export default function RegisterPage() {
                     <Download className="mr-2 h-4 w-4" />
                     Download QR Code
                   </Button>
-                  <Button onClick={() => setSubmissionState({ submitted: false })} variant="secondary" size="lg">
+                  <Button onClick={() => setSubmitted(false)} variant="secondary" size="lg">
                     Register Another
                   </Button>
                 </div>
