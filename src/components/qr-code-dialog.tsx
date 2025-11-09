@@ -34,7 +34,7 @@ export function QrCodeDialog({ user, open, onOpenChange }: QrCodeDialogProps) {
         <DialogHeader>
           <DialogTitle>QR Code for {user.name}</DialogTitle>
           <DialogDescription>
-            Scan this QR code for registration. You can also download it as a PNG image.
+            This is the user's unique QR code and registration details.
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center justify-center p-6 bg-muted/50 rounded-lg border">
@@ -47,7 +47,7 @@ export function QrCodeDialog({ user, open, onOpenChange }: QrCodeDialogProps) {
             unoptimized // QR code API might not have cache headers
           />
         </div>
-        <div className="text-sm space-y-1 text-muted-foreground grid grid-cols-2 gap-x-4">
+        <div className="text-sm space-y-1 text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
             <p><span className="font-semibold text-foreground">Email:</span> {user.email}</p>
             <p><span className="font-semibold text-foreground">Job:</span> {user.job}</p>
             <p><span className="font-semibold text-foreground">Age:</span> {user.age}</p>
