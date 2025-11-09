@@ -57,27 +57,31 @@ export default function RegisterPage() {
   };
 
   useEffect(() => {
-    if (state.message) {
-        if (state.user) {
-            setSubmittedUser(state.user);
-            form.reset();
-        } else {
-            setSubmittedUser(null);
-            toast({
-                variant: "destructive",
-                title: "Registration Failed",
-                description: state.message,
+    if (state?.message) {
+      if (state.user) {
+        setSubmittedUser(state.user);
+        form.reset();
+      } else {
+        // Handle server-side errors (validation or otherwise)
+        setSubmittedUser(null);
+        toast({
+            variant: "destructive",
+            title: "Registration Failed",
+            description: state.message,
+        });
+
+        // Clear previous errors before setting new ones
+        form.clearErrors();
+        if (state.errors) {
+            Object.keys(state.errors).forEach((key) => {
+                const field = key as keyof FormData;
+                const message = state.errors?.[field]?.[0]
+                if (message) {
+                    form.setError(field, { type: 'server', message });
+                }
             });
-            if (state.errors) {
-                Object.keys(state.errors).forEach((key) => {
-                    const field = key as keyof FormData;
-                    const message = state.errors?.[field]?.[0]
-                    if (message) {
-                        form.setError(field, { type: 'server', message });
-                    }
-                });
-            }
         }
+      }
     }
   }, [state, form, toast]);
 
@@ -95,9 +99,6 @@ export default function RegisterPage() {
   const handleRegisterAnother = () => {
     setSubmittedUser(null);
     form.reset();
-    // Also reset the action state so the success message doesn't re-trigger
-    const freshInitialState: FormState = { message: '', user: null, errors: {} };
-    Object.assign(initialState, freshInitialState);
   };
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
