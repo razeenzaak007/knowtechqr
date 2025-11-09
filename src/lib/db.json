@@ -1,3 +1,18 @@
 {
-  "users": []
+  "users": [
+    {
+      "name": "Razeen Zakariya ",
+      "age": 22,
+      "bloodGroup": "B-",
+      "gender": "male",
+      "job": "Software",
+      "area": "Sjkala",
+      "whatsappNumber": "67045231",
+      "email": "razeenzak@gmail.com",
+      "id": "user_1762721568645_iqvdam9",
+      "createdAt": "2025-11-09T20:52:48.645Z",
+      "checkedInAt": "2025-11-09T20:53:21.639Z",
+      "qrCodeUrl": "https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=%7B%22id%22%3A%22user_1762721568645_iqvdam9%22%7D"
+    }
+  ]
 }
