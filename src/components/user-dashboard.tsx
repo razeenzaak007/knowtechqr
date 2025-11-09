@@ -30,10 +30,12 @@ function UserTable({
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
-            <TableHead className="hidden sm:table-cell">Email</TableHead>
-            <TableHead>Job</TableHead>
-            <TableHead className="hidden md:table-cell">Status</TableHead>
-            <TableHead className="hidden md:table-cell text-right">Registered</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead className="hidden lg:table-cell">Job</TableHead>
+            <TableHead className="hidden lg:table-cell">Area</TableHead>
+            <TableHead className="hidden xl:table-cell">Blood Group</TableHead>
+            <TableHead className="hidden xl:table-cell">Status</TableHead>
+            <TableHead className="hidden xl:table-cell text-right">Registered</TableHead>
             <TableHead><span className="sr-only">Actions</span></TableHead>
           </TableRow>
         </TableHeader>
@@ -42,16 +44,18 @@ function UserTable({
             users.map((user) => (
               <TableRow key={user.id}>
                 <TableCell className="font-medium">{user.name}</TableCell>
-                <TableCell className="hidden sm:table-cell text-muted-foreground">{user.email}</TableCell>
-                <TableCell>{user.job}</TableCell>
-                <TableCell className="hidden md:table-cell">
+                <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                <TableCell className="hidden lg:table-cell">{user.job}</TableCell>
+                <TableCell className="hidden lg:table-cell">{user.area}</TableCell>
+                <TableCell className="hidden xl:table-cell">{user.bloodGroup}</TableCell>
+                <TableCell className="hidden xl:table-cell">
                   {user.checkedInAt ? (
                     <Badge variant="secondary">Checked In</Badge>
                   ) : (
                     <Badge variant="outline">Registered</Badge>
                   )}
                 </TableCell>
-                <TableCell className="hidden md:table-cell text-right text-muted-foreground">
+                <TableCell className="hidden xl:table-cell text-right text-muted-foreground">
                   {format(new Date(user.createdAt), 'MMM d, yyyy h:mm a')}
                 </TableCell>
                 <TableCell className="text-right">
@@ -61,7 +65,7 @@ function UserTable({
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+              <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
                 No users found.
               </TableCell>
             </TableRow>
