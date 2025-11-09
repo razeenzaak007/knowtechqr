@@ -38,6 +38,9 @@ const nextConfig: NextConfig = {
       }
     ],
   },
+  experimental: {
+    serverComponentsExternalPackages: ['jsqr'],
+  }
 };
 
 export default nextConfig;
