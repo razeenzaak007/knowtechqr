@@ -2,8 +2,6 @@
 'use client';
 
 import React, { useState, useEffect, useActionState, useRef } from 'react';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -17,19 +15,7 @@ import Image from 'next/image';
 import { Download } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-
-const UserSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  age: z.coerce.number().min(1, { message: 'Please enter a valid age.' }),
-  bloodGroup: z.string({ required_error: 'Blood group is required.' }).min(1, 'Blood group is required.'),
-  gender: z.string({ required_error: 'Please select a gender.' }).min(1, 'Please select a gender.'),
-  job: z.string().min(2, { message: 'Job must be at least 2 characters.' }),
-  area: z.string().min(2, { message: 'Area must be at least 2 characters.' }),
-  whatsappNumber: z.string().min(8, { message: 'Please enter a valid WhatsApp number.' }),
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
-});
-
-type FormData = z.infer<typeof UserSchema>;
+import { Label } from '@/components/ui/label';
 
 const initialState: FormState = {
   message: '',
@@ -41,22 +27,18 @@ export default function RegisterPage() {
   const { toast } = useToast();
   const [state, formAction, isPending] = useActionState(addUserAction, initialState);
   const [submittedUser, setSubmittedUser] = useState<FormState['user']>(null);
+  
+  // To reset the form
   const formRef = useRef<HTMLFormElement>(null);
+  const [formKey, setFormKey] = useState(Date.now());
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(UserSchema),
-    defaultValues: { name: '', email: '', whatsappNumber: '', area: '', job: '', age: 0, bloodGroup: '', gender: '' },
-  });
-
-  const bloodGroupValue = form.watch('bloodGroup');
-  const genderValue = form.watch('gender');
 
   useEffect(() => {
     if (state.message) {
       if (state.user) {
         setSubmittedUser(state.user);
-        form.reset();
-        formRef.current?.reset();
+        // Reset the form by changing the key, which forces a re-mount
+        setFormKey(Date.now());
       } else {
         setSubmittedUser(null);
         toast({
@@ -64,20 +46,9 @@ export default function RegisterPage() {
             title: "Registration Failed",
             description: state.message,
         });
-
-        form.clearErrors();
-        if (state.errors) {
-            Object.keys(state.errors).forEach((key) => {
-                const field = key as keyof FormData;
-                const message = state.errors?.[field]?.[0]
-                if (message) {
-                    form.setError(field, { type: 'server', message });
-                }
-            });
-        }
       }
     }
-  }, [state, form, toast]);
+  }, [state, toast]);
 
   const handleDownload = () => {
     if (!submittedUser?.qrCodeUrl) return;
@@ -92,7 +63,6 @@ export default function RegisterPage() {
   
   const handleRegisterAnother = () => {
     setSubmittedUser(null);
-    form.reset();
   };
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
@@ -136,96 +106,76 @@ export default function RegisterPage() {
                 </div>
               </div>
             ) : (
-              <Form {...form}>
                 <form 
+                  key={formKey}
                   ref={formRef}
                   action={formAction}
                   className="space-y-6"
                 >
-                  <FormField control={form.control} name="name" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Full Name</FormLabel>
-                        <FormControl><Input placeholder="e.g., Jane Doe" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField control={form.control} name="age" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Age</FormLabel>
-                        <FormControl><Input type="number" placeholder="e.g., 25" {...field} onChange={e => field.onChange(e.target.value === '' ? '' : Number(e.target.value))} value={field.value === 0 ? '' : field.value} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField control={form.control} name="bloodGroup" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Blood Group</FormLabel>
-                       <input type="hidden" name="bloodGroup" value={bloodGroupValue} />
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a blood group" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}/>
-                   <FormField control={form.control} name="gender" render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel>Gender</FormLabel>
-                      <input type="hidden" name="gender" value={genderValue} />
-                      <FormControl>
-                        <RadioGroup onValueChange={field.onChange} defaultValue={field.value} className="flex space-x-4">
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl><RadioGroupItem value="male" /></FormControl>
-                            <FormLabel className="font-normal">Male</FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl><RadioGroupItem value="female" /></FormControl>
-                            <FormLabel className="font-normal">Female</FormLabel>
-                          </FormItem>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                   <FormField control={form.control} name="job" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Job</FormLabel>
-                        <FormControl><Input placeholder="e.g., Software Engineer" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField control={form.control} name="area" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Area in Kuwait</FormLabel>
-                        <FormControl><Input placeholder="e.g., Salmiya" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                   <FormField control={form.control} name="whatsappNumber" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>WhatsApp Number</FormLabel>
-                        <FormControl><Input type="tel" placeholder="e.g., 99xxxxxx" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField control={form.control} name="email" render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email Address</FormLabel>
-                        <FormControl><Input placeholder="e.g., jane.doe@example.com" type="email" {...field} /></FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Full Name</Label>
+                        <Input id="name" name="name" placeholder="e.g., Jane Doe" required />
+                        {state.errors?.name && <p className="text-sm font-medium text-destructive">{state.errors.name[0]}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="age">Age</Label>
+                        <Input id="age" name="age" type="number" placeholder="e.g., 25" required />
+                        {state.errors?.age && <p className="text-sm font-medium text-destructive">{state.errors.age[0]}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="bloodGroup">Blood Group</Label>
+                        <Select name="bloodGroup" required>
+                            <SelectTrigger id="bloodGroup">
+                                <SelectValue placeholder="Select a blood group" />
+                            </SelectTrigger>
+                            <SelectContent>
+                            {bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        {state.errors?.bloodGroup && <p className="text-sm font-medium text-destructive">{state.errors.bloodGroup[0]}</p>}
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label>Gender</Label>
+                      <RadioGroup name="gender" className="flex space-x-4">
+                          <div className="flex items-center space-x-3 space-y-0">
+                            <RadioGroupItem value="male" id="male" />
+                            <Label htmlFor="male" className="font-normal">Male</Label>
+                          </div>
+                          <div className="flex items-center space-x-3 space-y-0">
+                            <RadioGroupItem value="female" id="female" />
+                            <Label htmlFor="female" className="font-normal">Female</Label>
+                          </div>
+                      </RadioGroup>
+                      {state.errors?.gender && <p className="text-sm font-medium text-destructive">{state.errors.gender[0]}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="job">Job</Label>
+                        <Input id="job" name="job" placeholder="e.g., Software Engineer" required />
+                         {state.errors?.job && <p className="text-sm font-medium text-destructive">{state.errors.job[0]}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="area">Area in Kuwait</Label>
+                        <Input id="area" name="area" placeholder="e.g., Salmiya" required />
+                        {state.errors?.area && <p className="text-sm font-medium text-destructive">{state.errors.area[0]}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                        <Input id="whatsappNumber" name="whatsappNumber" type="tel" placeholder="e.g., 99xxxxxx" required />
+                        {state.errors?.whatsappNumber && <p className="text-sm font-medium text-destructive">{state.errors.whatsappNumber[0]}</p>}
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="email">Email Address</Label>
+                        <Input id="email" name="email" placeholder="e.g., jane.doe@example.com" type="email" required />
+                        {state.errors?.email && <p className="text-sm font-medium text-destructive">{state.errors.email[0]}</p>}
+                    </div>
+
                   <Button type="submit" disabled={isPending} className="w-full">
                     {isPending ? (
                       <>
@@ -237,7 +187,6 @@ export default function RegisterPage() {
                     )}
                   </Button>
                 </form>
-              </Form>
             )}
           </CardContent>
         </Card>
