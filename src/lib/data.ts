@@ -30,25 +30,25 @@ export async function addUser(user: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' 
         ...user,
         createdAt: Timestamp.now(),
         checkedInAt: null,
+        qrCodeUrl: '', // Start with an empty qrCodeUrl
     };
     
     const docRef = await addDoc(collection(db, "users"), newUserPayload);
     
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: docRef.id }))}`;
+
+    // Now, update the document with the generated QR code URL.
+    await updateDoc(doc(db, "users", docRef.id), {
+      qrCodeUrl: qrCodeUrl,
+    });
+    
     const newUser: User = {
         id: docRef.id,
         ...user,
-        qrCodeUrl: '',
+        qrCodeUrl: qrCodeUrl,
         createdAt: newUserPayload.createdAt.toDate().toISOString(),
         checkedInAt: null,
     };
-
-    // The qr code now contains the user object itself, for easier scanning
-    newUser.qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: newUser.id }))}`;
-
-    // We need to update the doc with the QR code URL.
-    await updateDoc(doc(db, "users", newUser.id), {
-      qrCodeUrl: newUser.qrCodeUrl,
-    });
     
     return newUser;
 }
