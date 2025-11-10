@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import type { User } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,7 +10,7 @@ import { QrCodeDialog } from '@/components/qr-code-dialog';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScanLine, Mail, Briefcase, Upload, Loader2, Phone } from 'lucide-react';
+import { ScanLine, Mail, Briefcase, Upload, Loader2, Phone, FileDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { importUsersAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,7 @@ function UserMobileCard({ user, onShowQr }: { user: User; onShowQr: (user: User)
         <CardTitle className="text-base font-medium">{user.name}</CardTitle>
         <UserTableActions user={user} onShowQr={onShowQr} />
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-3 pt-2">
         <div className="text-sm text-muted-foreground space-y-2">
             <div className="flex items-center"><Phone className="mr-2 h-4 w-4" /><span>{user.whatsappNumber}</span></div>
             <div className="flex items-center"><Mail className="mr-2 h-4 w-4" /><span>{user.email}</span></div>
@@ -109,13 +109,13 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
     if (!search) return initialUsers;
     const searchTerm = search.toLowerCase();
     return initialUsers.filter(user =>
-      user.name.toLowerCase().includes(searchTerm) ||
-      user.email.toLowerCase().includes(searchTerm) ||
-      user.job.toLowerCase().includes(searchTerm) ||
-      user.area.toLowerCase().includes(searchTerm) ||
-      user.bloodGroup.toLowerCase().includes(searchTerm) ||
-      user.gender.toLowerCase().includes(searchTerm) ||
-      user.whatsappNumber.includes(searchTerm)
+      (user.name || '').toLowerCase().includes(searchTerm) ||
+      (user.email || '').toLowerCase().includes(searchTerm) ||
+      (user.job || '').toLowerCase().includes(searchTerm) ||
+      (user.area || '').toLowerCase().includes(searchTerm) ||
+      (user.bloodGroup || '').toLowerCase().includes(searchTerm) ||
+      (user.gender || '').toLowerCase().includes(searchTerm) ||
+      (user.whatsappNumber || '').includes(searchTerm)
     );
   }, [search, initialUsers]);
 
@@ -145,8 +145,8 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-            header: 1, // Treat first row as headers
-            defval: null // Use null for blank cells
+            header: 1, 
+            defval: null 
         });
 
         if (jsonData.length < 2) {
@@ -173,7 +173,6 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
           };
         });
 
-
         const result = await importUsersAction(mappedData);
 
         if (result.success) {
@@ -197,7 +196,6 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
         });
       } finally {
         setIsImporting(false);
-        // Reset file input so the same file can be selected again
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
@@ -214,6 +212,26 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
     }
 
     reader.readAsArrayBuffer(file);
+  };
+  
+  const handleExport = (users: User[], fileName: string) => {
+    const worksheetData = users.map(user => ({
+      'Full Name': user.name,
+      'Age': user.age,
+      'Blood Group': user.bloodGroup,
+      'Gender': user.gender,
+      'Job': user.job,
+      'Area in Kuwait': user.area,
+      'Whatsapp Number': user.whatsappNumber,
+      'Email address': user.email,
+      'Registered At': user.createdAt ? new Date(user.createdAt).toLocaleString() : '',
+      'Checked In At': user.checkedInAt ? new Date(user.checkedInAt).toLocaleString() : 'N/A',
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Users');
+    XLSX.writeFile(workbook, fileName);
   };
 
 
@@ -238,7 +256,7 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
               ref={fileInputRef}
               onChange={handleFileChange}
               className="hidden"
-              accept=".xlsx, .xls, .csv"
+              accept=".xlsx, .xls"
             />
             <Button asChild className="flex-1 md:flex-initial">
                 <Link href="/admin/scan">
@@ -255,7 +273,7 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
       </div>
       
       <Tabs defaultValue="registered">
-        <div className="flex flex-col sm:flex-row justify-between items-center flex-wrap gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start flex-wrap gap-4">
             <TabsList className="grid w-full grid-cols-2 sm:w-auto">
                 <TabsTrigger value="registered">Registered ({registeredUsers.length})</TabsTrigger>
                 <TabsTrigger value="checked-in">Checked-in ({checkedInUsers.length})</TabsTrigger>
@@ -272,11 +290,23 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
 
         <TabsContent value="registered">
             <div className="bg-card p-0 sm:p-2 md:p-4 rounded-xl md:border md:shadow-sm">
+                 <div className="flex justify-end mb-4">
+                    <Button variant="outline" onClick={() => handleExport(registeredUsers, 'registered-users.xlsx')}>
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Export to Excel
+                    </Button>
+                 </div>
                 <UserTable users={registeredUsers} onShowQr={handleShowQr} />
             </div>
         </TabsContent>
         <TabsContent value="checked-in">
             <div className="bg-card p-0 sm:p-2 md:p-4 rounded-xl md:border md:shadow-sm">
+                <div className="flex justify-end mb-4">
+                    <Button variant="outline" onClick={() => handleExport(checkedInUsers, 'checked-in-users.xlsx')}>
+                        <FileDown className="mr-2 h-4 w-4" />
+                        Export to Excel
+                    </Button>
+                 </div>
                 <UserTable users={checkedInUsers} onShowQr={handleShowQr} />
             </div>
         </TabsContent>
@@ -294,3 +324,5 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
     </div>
   );
 }
+
+    
