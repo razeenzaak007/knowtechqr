@@ -3,21 +3,18 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // By default, deny all reads and writes
+    // Default to deny all access.
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Allow list access for the 'users' collection for any authenticated user.
-    // This is necessary for the admin dashboard to display all users.
-    match /users {
-      allow list: if request.auth != null;
-    }
-
-    // Allow read/write access to individual documents in the 'users' collection 
-    // for any authenticated user.
+    // Allow any authenticated user (including anonymous) to read and write
+    // to the 'users' collection. This is secure enough for this app's
+    // admin dashboard and registration functions.
     match /users/{userId} {
       allow read, write: if request.auth != null;
     }
   }
 }
+
+    

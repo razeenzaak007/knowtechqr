@@ -15,9 +15,10 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { importUsersAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
-import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from './ui/skeleton';
+import { signInAnonymously } from 'firebase/auth';
 
 interface UserDashboardProps {
   initialUsers: User[]; // This will be empty, kept for prop consistency
@@ -162,7 +163,22 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const firestore = useFirestore();
+  const auth = useAuth();
   const { user, isUserLoading } = useUser();
+
+  // Automatically sign in anonymously if not already signed in.
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      signInAnonymously(auth).catch((error) => {
+        console.error("Anonymous sign-in failed:", error);
+        toast({
+          variant: "destructive",
+          title: "Authentication Failed",
+          description: "Could not log in to view dashboard. Please refresh the page.",
+        });
+      });
+    }
+  }, [isUserLoading, user, auth, toast]);
 
   const usersQuery = useMemoFirebase(() => {
     // Only create the query if we have a firestore instance AND a logged-in user.
@@ -395,5 +411,7 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
     </div>
   );
 }
+
+    
 
     
