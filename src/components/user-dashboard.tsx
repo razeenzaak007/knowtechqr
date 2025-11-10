@@ -10,27 +10,65 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScanLine } from 'lucide-react';
+import { ScanLine, Mail, Briefcase, MapPin, Droplets, User as UserIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 // New component to safely render dates on the client
-function ClientFormattedDate({ dateString, formatString }: { dateString: string; formatString: string; }) {
+function ClientFormattedDate({ date, formatString }: { date: string | null | undefined; formatString: string; }) {
     const [mounted, setMounted] = useState(false);
     useEffect(() => setMounted(true), []);
 
-    if (!mounted) {
+    if (!mounted || !date) {
         // Render a placeholder or nothing on the server and initial client render
         return null; 
     }
 
-    return <span>{format(new Date(dateString), formatString)}</span>;
+    try {
+        return <span>{format(new Date(date), formatString)}</span>;
+    } catch (e) {
+        return null;
+    }
 }
 
 
 interface UserDashboardProps {
   initialUsers: User[];
 }
+
+function UserMobileCard({ user, onShowQr }: { user: User; onShowQr: (user: User) => void; }) {
+  return (
+    <Card>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-base font-medium">{user.name}</CardTitle>
+        <UserTableActions user={user} onShowQr={onShowQr} />
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="text-sm text-muted-foreground space-y-2">
+            <div className="flex items-center"><Mail className="mr-2 h-4 w-4" /><span>{user.email}</span></div>
+            <div className="flex items-center"><Briefcase className="mr-2 h-4 w-4" /><span>{user.job}</span></div>
+            <div className="flex items-center"><MapPin className="mr-2 h-4 w-4" /><span>{user.area}</span></div>
+            <div className="flex items-center"><Droplets className="mr-2 h-4 w-4" /><span>{user.bloodGroup}</span></div>
+            <div className="flex items-center capitalize"><UserIcon className="mr-2 h-4 w-4" /><span>{user.gender}</span></div>
+        </div>
+         <div className="flex items-center justify-between pt-2 border-t">
+          <div>
+            {user.checkedInAt ? (
+              <Badge variant="secondary">Checked In</Badge>
+            ) : (
+              <Badge variant="outline">Registered</Badge>
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground">
+             <ClientFormattedDate date={user.checkedInAt ?? user.createdAt} formatString="MMM d, h:mm a" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 
 function UserTable({
   users,
@@ -40,7 +78,18 @@ function UserTable({
   onShowQr: (user: User) => void;
 }) {
   return (
-    <div className="mt-4 rounded-lg border">
+    <>
+    {/* Mobile View */}
+    <div className="mt-4 space-y-4 md:hidden">
+         {users.length > 0 ? (
+            users.map((user) => <UserMobileCard key={user.id} user={user} onShowQr={onShowQr} />)
+        ) : (
+            <div className="text-center text-muted-foreground py-12">No users found.</div>
+        )}
+    </div>
+    
+    {/* Desktop View */}
+    <div className="mt-4 rounded-lg border hidden md:block">
       <TooltipProvider>
         <Table>
           <TableHeader>
@@ -71,7 +120,7 @@ function UserTable({
                            <Badge variant="secondary">Checked In</Badge>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <ClientFormattedDate dateString={user.checkedInAt} formatString='MMM d, yyyy h:mm a' />
+                          <ClientFormattedDate date={user.checkedInAt} formatString='MMM d, yyyy h:mm a' />
                         </TooltipContent>
                       </Tooltip>
                     ) : (
@@ -81,10 +130,10 @@ function UserTable({
                   <TableCell className="text-right text-muted-foreground hidden sm:table-cell">
                     <Tooltip>
                       <TooltipTrigger>
-                         <ClientFormattedDate dateString={user.createdAt} formatString='MMM d, yyyy' />
+                         <ClientFormattedDate date={user.createdAt} formatString='MMM d, yyyy' />
                       </TooltipTrigger>
                       <TooltipContent>
-                        <ClientFormattedDate dateString={user.createdAt} formatString='MMM d, yyyy h:mm a' />
+                        <ClientFormattedDate date={user.createdAt} formatString='MMM d, yyyy h:mm a' />
                       </TooltipContent>
                     </Tooltip>
                   </TableCell>
@@ -104,6 +153,7 @@ function UserTable({
         </Table>
       </TooltipProvider>
     </div>
+    </>
   );
 }
 
@@ -139,47 +189,47 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight font-headline">User Registrations</h1>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight font-headline">User Registrations</h1>
           <p className="text-muted-foreground">A list of all users who have registered and participated.</p>
         </div>
-        <div className="flex gap-2">
-            <Button asChild>
+        <div className="flex gap-2 w-full md:w-auto">
+            <Button asChild className="flex-1 md:flex-initial">
                 <Link href="/admin/scan">
                     <ScanLine className="mr-2 h-4 w-4" />
-                    Scan QR Code
+                    Scan QR
                 </Link>
             </Button>
-            <Button asChild variant="outline">
+            <Button asChild variant="outline" className="flex-1 md:flex-initial">
                 <Link href="/">
-                    View QR Code
+                    View QR
                 </Link>
             </Button>
         </div>
       </div>
       
       <Tabs defaultValue="registered">
-        <div className="flex justify-between items-center flex-wrap gap-4">
-            <TabsList>
+        <div className="flex flex-col sm:flex-row justify-between items-center flex-wrap gap-4">
+            <TabsList className="grid w-full grid-cols-2 sm:w-auto">
                 <TabsTrigger value="registered">Registered ({registeredUsers.length})</TabsTrigger>
                 <TabsTrigger value="checked-in">Checked-in ({checkedInUsers.length})</TabsTrigger>
             </TabsList>
-            <div className="w-full sm:w-auto">
+            <div className="w-full sm:w-auto sm:max-w-sm">
                 <Input
-                placeholder="Search by name, email, job, area..."
+                placeholder="Search users..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full sm:max-w-sm"
+                className="w-full"
                 />
             </div>
         </div>
 
         <TabsContent value="registered">
-            <div className="bg-card p-4 sm:p-6 rounded-xl border shadow-sm">
+            <div className="bg-card p-0 sm:p-2 md:p-4 rounded-xl md:border md:shadow-sm">
                 <UserTable users={registeredUsers} onShowQr={handleShowQr} />
             </div>
         </TabsContent>
         <TabsContent value="checked-in">
-            <div className="bg-card p-4 sm:p-6 rounded-xl border shadow-sm">
+            <div className="bg-card p-0 sm:p-2 md:p-4 rounded-xl md:border md:shadow-sm">
                 <UserTable users={checkedInUsers} onShowQr={handleShowQr} />
             </div>
         </TabsContent>
