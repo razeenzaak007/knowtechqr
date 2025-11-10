@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useMemo, useEffect, useRef } from 'react';
@@ -209,20 +210,23 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-            // Ensure empty cells are not skipped and are set to undefined
             defval: undefined
         });
 
-        // Convert all header to lowercase to be safe
-        const lowercasedJsonData = jsonData.map(row => {
-            const newRow: {[key: string]: any} = {};
-            for (const key in row as any) {
-                newRow[key.toLowerCase()] = (row as any)[key];
-            }
-            return newRow;
-        });
+        // Map Excel columns to the expected schema properties
+        const mappedData = jsonData.map((row: any) => ({
+          name: row['Full Name'],
+          age: row['Age'],
+          bloodGroup: row['Blood Group'],
+          gender: row['Gender'],
+          job: row['Job'],
+          area: row['Area in Kuwait'],
+          whatsappNumber: String(row['Whatsapp Number'] ?? ''),
+          email: row['Email address'],
+        }));
 
-        const result = await importUsersAction(lowercasedJsonData);
+
+        const result = await importUsersAction(mappedData);
 
         if (result.success) {
           toast({
@@ -241,7 +245,7 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
         toast({
           variant: 'destructive',
           title: "Import Error",
-          description: "An error occurred while processing the Excel file. Make sure it is a valid .xlsx or .xls file.",
+          description: "An error occurred while processing the Excel file. Make sure it is a valid .xlsx or .xls file and the column headers are correct.",
         });
       } finally {
         setIsImporting(false);
