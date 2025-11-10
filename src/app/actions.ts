@@ -75,39 +75,14 @@ export async function addUserAction(prevState: FormState, formData: FormData): P
   }
 }
 
-const NewUserSchema = z.object({
-  name: z.string(),
-  age: z.coerce.number(),
-  bloodGroup: z.string(),
-  gender: z.string(),
-  job: z.string(),
-  area: z.string(),
-  whatsappNumber: z.string(),
-  email: z.string().email(),
-});
-
-const NewUsersSchema = z.array(NewUserSchema);
-
-
-export async function importUsersAction(usersData: unknown) {
-  const validatedFields = NewUsersSchema.safeParse(usersData);
-
-  if (!validatedFields.success) {
-    console.error('Validation failed:', validatedFields.error);
-    return {
-      success: false,
-      message: 'The data from the Excel file is not in the correct format. Please check the column headers and data types.',
-      count: 0
-    };
-  }
-
+export async function importUsersAction(usersData: any[]) {
   try {
-    await dbAddUsers(validatedFields.data);
+    await dbAddUsers(usersData);
     revalidatePath('/admin');
     return {
       success: true,
-      message: `${validatedFields.data.length} users imported successfully.`,
-      count: validatedFields.data.length
+      message: `${usersData.length} users imported successfully.`,
+      count: usersData.length
     };
   } catch (e) {
     console.error('importUsersAction error:', e);

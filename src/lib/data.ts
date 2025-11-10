@@ -70,7 +70,7 @@ export async function addUser(user: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' 
     }
 }
 
-export async function addUsers(users: Array<Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' | 'checkedInAt'>>): Promise<void> {
+export async function addUsers(users: Array<Partial<Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' | 'checkedInAt'>>>): Promise<void> {
     try {
         const db = await readDB();
         
@@ -78,7 +78,14 @@ export async function addUsers(users: Array<Omit<User, 'id' | 'createdAt' | 'qrC
             const newId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
             const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: newId }))}`;
             return {
-                ...user,
+                name: user.name || '',
+                age: user.age || 0,
+                bloodGroup: user.bloodGroup || '',
+                gender: user.gender || '',
+                job: user.job || '',
+                area: user.area || '',
+                whatsappNumber: user.whatsappNumber || '',
+                email: user.email || '',
                 id: newId,
                 createdAt: new Date().toISOString(),
                 checkedInAt: null,

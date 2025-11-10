@@ -210,20 +210,28 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-            defval: undefined
+            header: 1, // Treat first row as headers
+            defval: null // Use null for blank cells
         });
 
-        // Map Excel columns to the expected schema properties
-        const mappedData = jsonData.map((row: any) => ({
-          name: row['Full Name'],
-          age: row['Age'],
-          bloodGroup: row['Blood Group'],
-          gender: row['Gender'],
-          job: row['Job'],
-          area: row['Area in Kuwait'],
-          whatsappNumber: String(row['Whatsapp Number'] ?? ''),
-          email: row['Email address'],
-        }));
+        const headers: string[] = (jsonData[0] as string[]).map(h => h ? String(h).trim() : '');
+        const mappedData = (jsonData.slice(1) as any[][]).map((row: any[]) => {
+          const rowData: {[key: string]: any} = {};
+          headers.forEach((header, index) => {
+             rowData[header] = row[index];
+          });
+          
+          return {
+            name: rowData['Full Name'] || null,
+            age: rowData['Age'] ? Number(rowData['Age']) : null,
+            bloodGroup: rowData['Blood Group'] || null,
+            gender: rowData['Gender'] || null,
+            job: rowData['Job'] || null,
+            area: rowData['Area in Kuwait'] || null,
+            whatsappNumber: String(rowData['Whatsapp Number'] || ''),
+            email: rowData['Email address'] || null,
+          };
+        });
 
 
         const result = await importUsersAction(mappedData);
