@@ -10,10 +10,10 @@ export default function Header() {
             <Image 
                 src="https://i.imgur.com/kQYw8yV.png"
                 alt="Knowtech Logo"
-                width={36}
+                width={100}
                 height={36}
+                className="object-contain"
             />
-            <span className="font-headline tracking-tight">Basic Life Support Training</span>
           </Link>
         </div>
       </div>
