@@ -4,7 +4,7 @@
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import type { User } from '@/lib/types';
-import { addUser as dbAddUser, addUsers as dbAddUsers, checkInUser as dbCheckInUser } from '@/lib/data';
+import { addUser as dbAddUser, addUsers as dbAddUsers, checkInUser as dbCheckInUser } from '@/lib/firestore';
 
 const UserSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
