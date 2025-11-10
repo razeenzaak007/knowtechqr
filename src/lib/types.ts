@@ -1,4 +1,6 @@
 
+import { Timestamp } from 'firebase/firestore';
+
 export interface User {
   id: string;
   name: string;
@@ -10,6 +12,6 @@ export interface User {
   whatsappNumber: string;
   email: string;
   qrCodeUrl: string;
-  createdAt: string; // Using string for easy serialization between server/client
-  checkedInAt: string | null; // Can be a date string or null
+  createdAt: string | Timestamp; // Allow both for client/server
+  checkedInAt: string | Timestamp | null; // Allow both for client/server
 }

@@ -1,106 +1,135 @@
 
-import { promises as fs } from 'fs';
-import path from 'path';
+'use client';
+
+import { 
+  collection, 
+  getDocs, 
+  addDoc, 
+  doc, 
+  getDoc,
+  updateDoc,
+  Timestamp,
+  getFirestore
+} from 'firebase/firestore';
 import type { User } from './types';
+import { initializeFirebase } from '@/firebase';
 
-// The path to the JSON file
-const dbPath = path.join(process.cwd(), 'src', 'lib', 'db.json');
-
-// In-memory cache for the database to avoid reading the file on every request in a serverless environment.
-// This is a simple cache, for a real app a more robust solution would be needed.
-let dbCache: { users: User[] } | null = null;
-
-async function readDb(): Promise<{ users: User[] }> {
-  if (dbCache) {
-    return dbCache;
-  }
-  try {
-    const fileContent = await fs.readFile(dbPath, 'utf-8');
-    dbCache = JSON.parse(fileContent);
-    return dbCache!;
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      // File doesn't exist, return empty state and don't cache
-      return { users: [] };
-    }
-    console.error("Error reading database file:", error);
-    throw error;
-  }
-}
-
-async function writeDb(data: { users: User[] }): Promise<void> {
-  // Sort users by creation date before writing
-  data.users.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  await fs.writeFile(dbPath, JSON.stringify(data, null, 2), 'utf-8');
-  dbCache = data; // Update cache
+// This function is now a client-side utility to get the Firestore instance.
+function getDb() {
+  // Ensure Firebase is initialized and get the Firestore instance.
+  // This is safe to call multiple times.
+  const { firestore } = initializeFirebase();
+  return firestore;
 }
 
 export async function getUsers(): Promise<User[]> {
-  const db = await readDb();
-  return db.users;
+  const db = getDb();
+  const usersCol = collection(db, 'users');
+  const userSnapshot = await getDocs(usersCol);
+  const userList = userSnapshot.docs.map(doc => {
+    const data = doc.data();
+    return { 
+      ...data,
+      id: doc.id,
+      // Convert Firestore Timestamps to ISO strings
+      createdAt: (data.createdAt as Timestamp)?.toDate().toISOString() || new Date().toISOString(),
+      checkedInAt: (data.checkedInAt as Timestamp)?.toDate().toISOString() || null,
+    } as User;
+  });
+  // Sort users by creation date, most recent first
+  userList.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return userList;
 }
 
 export async function addUser(user: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' | 'checkedInAt'>): Promise<User> {
-  const db = await readDb();
-  const newId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: newId }))}`;
-
-  const newUser: User = {
+  const db = getDb();
+  const usersCol = collection(db, 'users');
+  
+  const newUserDoc = {
     ...user,
-    id: newId,
-    createdAt: new Date().toISOString(),
+    createdAt: Timestamp.now(), // Use Firestore server timestamp
     checkedInAt: null,
-    qrCodeUrl: qrCodeUrl,
   };
 
-  db.users.push(newUser);
-  await writeDb(db);
-  return newUser;
-}
+  const docRef = await addDoc(usersCol, newUserDoc);
+  
+  const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: docRef.id }))}`;
 
+  // Update the document with its own QR code URL
+  await updateDoc(docRef, { qrCodeUrl });
+  
+  const docSnap = await getDoc(docRef);
+  const data = docSnap.data();
+
+  return {
+    ...data,
+    id: docRef.id,
+    createdAt: (data?.createdAt as Timestamp).toDate().toISOString(),
+    checkedInAt: null, // It's null on creation
+    qrCodeUrl,
+  } as User;
+}
 
 export async function addUsers(users: Array<Partial<Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' | 'checkedInAt'>>>): Promise<void> {
-    const db = await readDb();
+  const db = getDb();
+  const usersCol = collection(db, 'users');
+  
+  const promises = users.map(async (user) => {
+    const docData = {
+      name: user.name ?? 'N/A',
+      age: user.age ?? 0,
+      bloodGroup: user.bloodGroup ?? 'N/A',
+      gender: user.gender ?? 'N/A',
+      job: user.job ?? 'N/A',
+      area: user.area ?? 'N/A',
+      whatsappNumber: user.whatsappNumber ?? 'N/A',
+      email: user.email ?? 'N/A',
+      createdAt: Timestamp.now(),
+      checkedInAt: null,
+      qrCodeUrl: '', // Will be updated after creation
+    };
+    const docRef = await addDoc(usersCol, docData);
+    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: docRef.id }))}`;
+    return updateDoc(docRef, { qrCodeUrl });
+  });
 
-    users.forEach(user => {
-        const newId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: newId }))}`;
-        
-        const newUser: User = {
-            id: newId,
-            createdAt: new Date().toISOString(),
-            checkedInAt: null,
-            qrCodeUrl: qrCodeUrl,
-            name: user.name ?? 'N/A',
-            age: user.age ?? 0,
-            bloodGroup: user.bloodGroup ?? 'N/A',
-            gender: user.gender ?? 'N/A',
-            job: user.job ?? 'N/A',
-            area: user.area ?? 'N/A',
-            whatsappNumber: user.whatsappNumber ?? 'N/A',
-            email: user.email ?? 'N/A',
-        };
-        db.users.push(newUser);
-    });
-
-    await writeDb(db);
+  await Promise.all(promises);
 }
 
-
 export async function checkInUser(userId: string): Promise<{ user: User | null; alreadyCheckedIn: boolean; }> {
-  const db = await readDb();
-  const userIndex = db.users.findIndex(u => u.id === userId);
+  const db = getDb();
+  const userRef = doc(db, 'users', userId);
+  const userSnap = await getDoc(userRef);
 
-  if (userIndex !== -1) {
-    const user = db.users[userIndex];
-    if (user.checkedInAt) {
-      return { user, alreadyCheckedIn: true };
+  if (userSnap.exists()) {
+    const userData = userSnap.data();
+    if (userData.checkedInAt) {
+      return { 
+        user: { 
+          ...userData, 
+          id: userSnap.id,
+          createdAt: (userData.createdAt as Timestamp).toDate().toISOString(),
+          checkedInAt: (userData.checkedInAt as Timestamp).toDate().toISOString(),
+        } as User, 
+        alreadyCheckedIn: true 
+      };
     }
 
-    const checkedInTime = new Date().toISOString();
-    db.users[userIndex] = { ...user, checkedInAt: checkedInTime };
-    await writeDb(db);
-    return { user: db.users[userIndex], alreadyCheckedIn: false };
+    const checkedInTime = Timestamp.now();
+    await updateDoc(userRef, { checkedInAt: checkedInTime });
+
+    const updatedUserSnap = await getDoc(userRef);
+    const updatedUserData = updatedUserSnap.data()!;
+
+    return { 
+      user: {
+        ...updatedUserData,
+        id: updatedUserSnap.id,
+        createdAt: (updatedUserData.createdAt as Timestamp).toDate().toISOString(),
+        checkedInAt: (updatedUserData.checkedInAt as Timestamp).toDate().toISOString(),
+      } as User, 
+      alreadyCheckedIn: false 
+    };
   }
 
   return { user: null, alreadyCheckedIn: false };

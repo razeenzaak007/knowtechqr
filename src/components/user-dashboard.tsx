@@ -15,9 +15,12 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { importUsersAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { Skeleton } from './ui/skeleton';
 
 interface UserDashboardProps {
-  initialUsers: User[];
+  initialUsers: User[]; // This will be empty, kept for prop consistency
 }
 
 function UserMobileCard({ user, onShowQr }: { user: User; onShowQr: (user: User) => void; }) {
@@ -41,11 +44,17 @@ function UserMobileCard({ user, onShowQr }: { user: User; onShowQr: (user: User)
 
 function UserTable({
   users,
+  isLoading,
   onShowQr,
 }: {
   users: User[];
+  isLoading: boolean;
   onShowQr: (user: User) => void;
 }) {
+  if (isLoading) {
+    return <UserTableSkeleton />;
+  }
+  
   return (
     <>
     {/* Mobile View */}
@@ -96,6 +105,35 @@ function UserTable({
   );
 }
 
+function UserTableSkeleton() {
+  return (
+    <div className="mt-4 rounded-lg border hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>WhatsApp Number</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Job</TableHead>
+              <TableHead><span className="sr-only">Actions</span></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[...Array(5)].map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+    </div>
+  )
+}
+
 export default function UserDashboard({ initialUsers }: UserDashboardProps) {
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -104,10 +142,20 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  const firestore = useFirestore();
+
+  const usersQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    return query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
+  }, [firestore]);
+
+  const { data: allUsers, isLoading } = useCollection<User>(usersQuery);
+
   const filteredUsers = useMemo(() => {
-    if (!search) return initialUsers;
+    if (!allUsers) return [];
+    if (!search) return allUsers;
     const searchTerm = search.toLowerCase();
-    return initialUsers.filter(user =>
+    return allUsers.filter(user =>
       (user.name || '').toLowerCase().includes(searchTerm) ||
       (user.email || '').toLowerCase().includes(searchTerm) ||
       (user.job || '').toLowerCase().includes(searchTerm) ||
@@ -116,7 +164,7 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
       (user.gender || '').toLowerCase().includes(searchTerm) ||
       (user.whatsappNumber || '').includes(searchTerm)
     );
-  }, [search, initialUsers]);
+  }, [search, allUsers]);
 
   const registeredUsers = useMemo(() => filteredUsers.filter(u => !u.checkedInAt), [filteredUsers]);
   const checkedInUsers = useMemo(() => filteredUsers.filter(u => u.checkedInAt), [filteredUsers]);
@@ -273,8 +321,8 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
       <Tabs defaultValue="registered">
         <div className="flex flex-col sm:flex-row justify-between items-start flex-wrap gap-4">
             <TabsList className="grid w-full grid-cols-2 sm:w-auto">
-                <TabsTrigger value="registered">Registered ({registeredUsers.length})</TabsTrigger>
-                <TabsTrigger value="checked-in">Checked-in ({checkedInUsers.length})</TabsTrigger>
+                <TabsTrigger value="registered">Registered ({isLoading ? '...' : registeredUsers.length})</TabsTrigger>
+                <TabsTrigger value="checked-in">Checked-in ({isLoading ? '...' : checkedInUsers.length})</TabsTrigger>
             </TabsList>
             <div className="w-full sm:w-auto sm:max-w-sm">
                 <Input
@@ -294,7 +342,7 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
                         Export to Excel
                     </Button>
                  </div>
-                <UserTable users={registeredUsers} onShowQr={handleShowQr} />
+                <UserTable users={registeredUsers} onShowQr={handleShowQr} isLoading={isLoading} />
             </div>
         </TabsContent>
         <TabsContent value="checked-in">
@@ -305,7 +353,7 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
                         Export to Excel
                     </Button>
                  </div>
-                <UserTable users={checkedInUsers} onShowQr={handleShowQr} />
+                <UserTable users={checkedInUsers} onShowQr={handleShowQr} isLoading={isLoading} />
             </div>
         </TabsContent>
 
