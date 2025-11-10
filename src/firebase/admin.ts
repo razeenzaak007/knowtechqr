@@ -3,8 +3,7 @@ import { initializeApp, getApps, App, cert } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 // IMPORTANT: These service account credentials are automatically provided
-// by Firebase App Hosting. Do not edit them manually.
-// For local development, you would typically use a service account JSON file.
+// by Firebase App Hosting or can be set as environment variables.
 const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
   ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
   : undefined;
@@ -12,9 +11,16 @@ const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT
 let adminApp: App;
 
 if (!getApps().length) {
-  adminApp = initializeApp({
-    credential: serviceAccount ? cert(serviceAccount) : undefined,
-  });
+  if (serviceAccount) {
+    // If a service account is explicitly provided, use it.
+    adminApp = initializeApp({
+      credential: cert(serviceAccount),
+    });
+  } else {
+    // Otherwise, allow the SDK to auto-discover credentials from the environment.
+    // This is the standard practice for services like App Hosting and Cloud Run.
+    adminApp = initializeApp();
+  }
 } else {
   adminApp = getApps()[0];
 }
