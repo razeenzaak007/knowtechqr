@@ -13,7 +13,7 @@ let adminApp: App;
 if (!getApps().length) {
   if (serviceAccount) {
     // If a service account is explicitly provided via environment variable, use it.
-    // This is common for local development.
+    // This is the standard for local development or certain CI/CD environments.
     adminApp = initializeApp({
       credential: cert(serviceAccount),
     });
