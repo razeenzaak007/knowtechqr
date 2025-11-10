@@ -1,14 +1,16 @@
-'use client';
+
 import Header from '@/components/header';
 import UserDashboard from '@/components/user-dashboard';
+import { getUsers } from '@/lib/data';
 
-export default function AdminPage() {
-  // The user data will now be fetched in UserDashboard using hooks
+export default async function AdminPage() {
+  const users = await getUsers();
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <Header />
       <main className="flex-1 container mx-auto p-4 md:p-8">
-        <UserDashboard />
+        <UserDashboard initialUsers={users} />
       </main>
     </div>
   );
