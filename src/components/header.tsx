@@ -14,7 +14,7 @@ export default function Header() {
                 height={36}
                 className="object-contain"
             />
-            <span className="hidden sm:inline-block text-lg font-semibold tracking-tight text-foreground">Basic Life Support Training</span>
+            <span className="text-lg font-semibold tracking-tight text-foreground">Basic Life Support Training</span>
           </Link>
         </div>
       </div>
