@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { importUsersAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from './ui/skeleton';
 
@@ -107,7 +107,25 @@ function UserTable({
 
 function UserTableSkeleton() {
   return (
-    <div className="mt-4 rounded-lg border hidden md:block">
+    <div className="mt-4 rounded-lg border">
+      {/* Mobile Skeleton */}
+      <div className="space-y-4 md:hidden p-4">
+        {[...Array(3)].map((_, i) => (
+          <Card key={i}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-8 w-8 rounded-full" />
+            </CardHeader>
+            <CardContent className="space-y-3 pt-2">
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-4 w-36" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+      {/* Desktop Skeleton */}
+      <div className="hidden md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -130,6 +148,7 @@ function UserTableSkeleton() {
             ))}
           </TableBody>
         </Table>
+      </div>
     </div>
   )
 }
@@ -143,13 +162,19 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
 
   const usersQuery = useMemoFirebase(() => {
-    if (!firestore) return null;
+    // Only create the query if we have a firestore instance AND a logged-in user.
+    if (!firestore || !user) return null;
     return query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
-  }, [firestore]);
+  }, [firestore, user]);
 
-  const { data: allUsers, isLoading } = useCollection<User>(usersQuery);
+  // Pass the user loading state into the data fetching hook.
+  const { data: allUsers, isLoading: isDataLoading } = useCollection<User>(usersQuery);
+
+  // The overall loading state is true if we are waiting for auth OR waiting for data.
+  const isLoading = isUserLoading || (user && isDataLoading);
 
   const filteredUsers = useMemo(() => {
     if (!allUsers) return [];
@@ -370,3 +395,5 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
     </div>
   );
 }
+
+    
