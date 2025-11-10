@@ -1,19 +1,11 @@
 
-import { 
-  collection, 
-  getDocs, 
-  addDoc, 
-  doc, 
-  getDoc,
-  updateDoc,
-  Timestamp,
-} from 'firebase/firestore';
 import type { User } from './types';
 import { adminDb } from '@/firebase/admin';
+import { Timestamp } from 'firebase-admin/firestore';
 
 export async function getUsers(): Promise<User[]> {
-  const usersCol = collection(adminDb, 'users');
-  const userSnapshot = await getDocs(usersCol);
+  const usersCol = adminDb.collection('users');
+  const userSnapshot = await usersCol.get();
   const userList = userSnapshot.docs.map(doc => {
     const data = doc.data();
     return { 
@@ -28,7 +20,7 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function addUser(user: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' | 'checkedInAt'>): Promise<User> {
-  const usersCol = collection(adminDb, 'users');
+  const usersCol = adminDb.collection('users');
   
   const newUserDoc = {
     ...user,
@@ -36,13 +28,13 @@ export async function addUser(user: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' 
     checkedInAt: null,
   };
 
-  const docRef = await addDoc(usersCol, newUserDoc);
+  const docRef = await usersCol.add(newUserDoc);
   
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: docRef.id }))}`;
 
-  await updateDoc(docRef, { qrCodeUrl });
+  await docRef.update({ qrCodeUrl });
   
-  const docSnap = await getDoc(docRef);
+  const docSnap = await docRef.get();
   const data = docSnap.data();
 
   return {
@@ -55,8 +47,9 @@ export async function addUser(user: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' 
 }
 
 export async function addUsers(users: Array<Partial<Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' | 'checkedInAt'>>>): Promise<void> {
-  const usersCol = collection(adminDb, 'users');
-  
+  const usersCol = adminDb.collection('users');
+  const batch = adminDb.batch();
+
   const promises = users.map(async (user) => {
     const docData = {
       name: user.name ?? 'N/A',
@@ -71,20 +64,22 @@ export async function addUsers(users: Array<Partial<Omit<User, 'id' | 'createdAt
       checkedInAt: null,
       qrCodeUrl: '',
     };
-    const docRef = await addDoc(usersCol, docData);
+    const docRef = usersCol.doc(); // Create a reference first
     const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: docRef.id }))}`;
-    return updateDoc(docRef, { qrCodeUrl });
+    
+    batch.set(docRef, { ...docData, qrCodeUrl });
   });
 
-  await Promise.all(promises);
+  await Promise.all(promises); // Wait for all QR URLs to be determined
+  await batch.commit(); // Commit the batch write
 }
 
 export async function checkInUser(userId: string): Promise<{ user: User | null; alreadyCheckedIn: boolean; }> {
-  const userRef = doc(adminDb, 'users', userId);
-  const userSnap = await getDoc(userRef);
+  const userRef = adminDb.collection('users').doc(userId);
+  const userSnap = await userRef.get();
 
-  if (userSnap.exists()) {
-    const userData = userSnap.data();
+  if (userSnap.exists) {
+    const userData = userSnap.data()!;
     if (userData.checkedInAt) {
       return { 
         user: { 
@@ -98,9 +93,9 @@ export async function checkInUser(userId: string): Promise<{ user: User | null; 
     }
 
     const checkedInTime = Timestamp.now();
-    await updateDoc(userRef, { checkedInAt: checkedInTime });
+    await userRef.update({ checkedInAt: checkedInTime });
 
-    const updatedUserSnap = await getDoc(userRef);
+    const updatedUserSnap = await userRef.get();
     const updatedUserData = updatedUserSnap.data()!;
 
     return { 
