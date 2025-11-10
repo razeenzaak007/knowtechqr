@@ -1,0 +1,68 @@
+{
+  "entities": {
+    "Registration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Registration",
+      "type": "object",
+      "description": "Represents a user registration for the QR Enrollment application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Registration entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The registered user's full name."
+        },
+        "email": {
+          "type": "string",
+          "description": "The registered user's email address.",
+          "format": "email"
+        },
+        "class": {
+          "type": "string",
+          "description": "The registered user's class or grade."
+        },
+        "registrationDate": {
+          "type": "string",
+          "description": "The date and time the registration was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "email",
+        "class",
+        "registrationDate"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/registrations/{registrationId}",
+        "definition": {
+          "entityName": "Registration",
+          "schema": {
+            "$ref": "#/backend/entities/Registration"
+          },
+          "description": "Stores registration data for the QR Enrollment application. Only accessible to administrators.",
+          "params": [
+            {
+              "name": "registrationId",
+              "description": "Unique identifier for the registration document."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "Given the requirements for the QR Enrollment application, a straightforward Firestore structure is recommended. All registration data will be stored in a single collection, `registrations`. This approach simplifies data management and querying for the admin tool. Since all documents in the `registrations` collection have the same security requirements (only admins can create, read, update, and delete), it adheres to the principle of Structural Segregation (homogeneous security posture). \n\nThe structure inherently supports QAPs (Rules are not Filters) because the entire collection is secured and listing is only allowed with appropriate admin credentials. This negates the need to filter server-side based on user roles. Authorization Independence is achieved as the application logic will be managed and any required checks will be enforced in the backend logic instead of relying on Firestore rules."
+  }
+}

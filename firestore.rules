@@ -1,0 +1,53 @@
+/**
+ * @fileoverview Firestore Security Rules for the QR Enrollment application.
+ *
+ * Core Philosophy:
+ * This ruleset strictly controls access to registration data, allowing only
+ * authenticated users to perform any operations. This ensures that
+ * sensitive registration information is protected from unauthorized access.
+ *
+ * Data Structure:
+ * All registration data is stored in the `/registrations/{registrationId}` collection.
+ *
+ * Key Security Decisions:
+ * - All read and write operations require authentication.
+ * - Listing registrations is not allowed.
+ *
+ * Denormalization for Authorization:
+ *  Not applicable, as all access is limited to authenticated users and no role-based
+ *  access control is implemented at the Firestore level.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Controls access to individual registration documents.
+     * @path /registrations/{registrationId}
+     * @allow (get) - Authenticated user can read a registration document.
+     * @allow (create) - Authenticated user can create a registration document.
+     * @allow (update) - Authenticated user can update a registration document.
+     * @allow (delete) - Authenticated user can delete a registration document.
+     * @deny (get) - Unauthenticated user cannot read a registration document.
+     * @deny (create) - Unauthenticated user cannot create a registration document.
+     * @deny (update) - Unauthenticated user cannot update a registration document.
+     * @deny (delete) - Unauthenticated user cannot delete a registration document.
+     * @principle Requires authentication for all operations.
+     */
+    match /registrations/{registrationId} {
+      allow get: if isSignedIn();
+      allow list: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && resource != null;
+      allow delete: if isSignedIn() && resource != null;
+    }
+
+    /**
+     * @description Checks if the user is signed in.
+     * @return {boolean} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+  }
+}
