@@ -11,7 +11,6 @@
  *
  * Key Security Decisions:
  * - All read and write operations require authentication.
- * - Listing registrations is not allowed.
  *
  * Denormalization for Authorization:
  *  Not applicable, as all access is limited to authenticated users and no role-based
@@ -35,11 +34,7 @@ service cloud.firestore {
      * @principle Requires authentication for all operations.
      */
     match /registrations/{registrationId} {
-      allow get: if isSignedIn();
-      allow list: if false;
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow read, write: if isSignedIn();
     }
 
     /**

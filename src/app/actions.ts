@@ -3,8 +3,11 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { addUser as dbAddUser, addUsers as dbAddUsers, checkInUser as dbCheckInUser } from '@/lib/data';
+import { getFirestore } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDoc, doc, writeBatch, updateDoc } from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase';
 import type { User } from '@/lib/types';
+import { addUser as dbAddUser, addUsers as dbAddUsers, checkInUser as dbCheckInUser } from '@/lib/data';
 
 const UserSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -54,8 +57,10 @@ export async function addUserAction(prevState: FormState, formData: FormData): P
     };
   }
 
+  const { firestore } = initializeFirebase();
+
   try {
-    const newUser = await dbAddUser(validatedFields.data);
+    const newUser = await dbAddUser(firestore, validatedFields.data);
     revalidatePath('/admin');
     return {
         message: 'User added successfully.',
@@ -76,8 +81,9 @@ export async function addUserAction(prevState: FormState, formData: FormData): P
 }
 
 export async function importUsersAction(usersData: any[]) {
+  const { firestore } = initializeFirebase();
   try {
-    await dbAddUsers(usersData);
+    await dbAddUsers(firestore, usersData);
     revalidatePath('/admin');
     return {
       success: true,
@@ -96,8 +102,9 @@ export async function importUsersAction(usersData: any[]) {
 }
 
 export async function checkInUserAction(userId: string) {
+  const { firestore } = initializeFirebase();
   try {
-    const result = await dbCheckInUser(userId);
+    const result = await dbCheckInUser(firestore, userId);
     if (result.user) {
       if (result.alreadyCheckedIn) {
         return { success: false, alreadyCheckedIn: true, user: result.user, message: `This user has already been checked in at ${new Date(result.user.checkedInAt!).toLocaleString()}.` };

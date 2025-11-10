@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import type { User } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,14 +10,18 @@ import { QrCodeDialog } from '@/components/qr-code-dialog';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScanLine, Mail, Briefcase, Upload, Loader2, Phone, FileDown } from 'lucide-react';
+import { ScanLine, Mail, Briefcase, Upload, Loader2, Phone, FileDown, User as UserIcon, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { importUsersAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
+import { useAuth, useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, orderBy } from 'firebase/firestore';
+import { Skeleton } from './ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
 
 interface UserDashboardProps {
-  initialUsers: User[];
+  // initialUsers is no longer needed as we fetch from firestore
 }
 
 function UserMobileCard({ user, onShowQr }: { user: User; onShowQr: (user: User) => void; }) {
@@ -42,10 +46,15 @@ function UserMobileCard({ user, onShowQr }: { user: User; onShowQr: (user: User)
 function UserTable({
   users,
   onShowQr,
+  isLoading
 }: {
   users: User[];
   onShowQr: (user: User) => void;
+  isLoading: boolean;
 }) {
+  if (isLoading) {
+    return <UserTableSkeleton />;
+  }
   return (
     <>
     {/* Mobile View */}
@@ -96,8 +105,36 @@ function UserTable({
   );
 }
 
+function UserTableSkeleton() {
+    return (
+      <div className="mt-4 rounded-lg border hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>WhatsApp Number</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Job</TableHead>
+              <TableHead><span className="sr-only">Actions</span></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[...Array(5)].map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-28" /></TableCell>
+                <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+}
 
-export default function UserDashboard({ initialUsers }: UserDashboardProps) {
+export default function UserDashboard() {
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
@@ -105,6 +142,17 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  const auth = useAuth();
+  const firestore = useFirestore();
+  const usersQuery = useMemoFirebase(() => {
+      if (!firestore) return null;
+      return query(collection(firestore, 'registrations'), orderBy('createdAt', 'desc'));
+  }, [firestore]);
+
+  const { data: users, isLoading, error } = useCollection<User>(usersQuery);
+
+  const initialUsers = users || [];
+
   const filteredUsers = useMemo(() => {
     if (!search) return initialUsers;
     const searchTerm = search.toLowerCase();
@@ -235,6 +283,19 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
   };
 
 
+  if (error) {
+    return (
+        <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4"/>
+            <AlertTitle>Error fetching data</AlertTitle>
+            <AlertDescription>
+                <p>Could not load user data from the database. Please check your connection and permissions.</p>
+                <p className="mt-2 text-xs font-mono">{error.message}</p>
+            </AlertDescription>
+        </Alert>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -275,8 +336,8 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
       <Tabs defaultValue="registered">
         <div className="flex flex-col sm:flex-row justify-between items-start flex-wrap gap-4">
             <TabsList className="grid w-full grid-cols-2 sm:w-auto">
-                <TabsTrigger value="registered">Registered ({registeredUsers.length})</TabsTrigger>
-                <TabsTrigger value="checked-in">Checked-in ({checkedInUsers.length})</TabsTrigger>
+                <TabsTrigger value="registered">Registered ({isLoading ? '...' : registeredUsers.length})</TabsTrigger>
+                <TabsTrigger value="checked-in">Checked-in ({isLoading ? '...' : checkedInUsers.length})</TabsTrigger>
             </TabsList>
             <div className="w-full sm:w-auto sm:max-w-sm">
                 <Input
@@ -291,23 +352,23 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
         <TabsContent value="registered">
             <div className="bg-card p-0 sm:p-2 md:p-4 rounded-xl md:border md:shadow-sm">
                  <div className="flex justify-end mb-4">
-                    <Button variant="outline" onClick={() => handleExport(registeredUsers, 'registered-users.xlsx')}>
+                    <Button variant="outline" onClick={() => handleExport(registeredUsers, 'registered-users.xlsx')} disabled={registeredUsers.length === 0}>
                         <FileDown className="mr-2 h-4 w-4" />
                         Export to Excel
                     </Button>
                  </div>
-                <UserTable users={registeredUsers} onShowQr={handleShowQr} />
+                <UserTable users={registeredUsers} onShowQr={handleShowQr} isLoading={isLoading} />
             </div>
         </TabsContent>
         <TabsContent value="checked-in">
             <div className="bg-card p-0 sm:p-2 md:p-4 rounded-xl md:border md:shadow-sm">
                 <div className="flex justify-end mb-4">
-                    <Button variant="outline" onClick={() => handleExport(checkedInUsers, 'checked-in-users.xlsx')}>
+                    <Button variant="outline" onClick={() => handleExport(checkedInUsers, 'checked-in-users.xlsx')} disabled={checkedInUsers.length === 0}>
                         <FileDown className="mr-2 h-4 w-4" />
                         Export to Excel
                     </Button>
                  </div>
-                <UserTable users={checkedInUsers} onShowQr={handleShowQr} />
+                <UserTable users={checkedInUsers} onShowQr={handleShowQr} isLoading={isLoading}/>
             </div>
         </TabsContent>
 
@@ -324,5 +385,3 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
     </div>
   );
 }
-
-    
