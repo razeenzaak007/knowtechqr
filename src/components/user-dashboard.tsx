@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import type { User } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,10 +10,13 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScanLine, Mail, Briefcase, MapPin, Droplets, User as UserIcon } from 'lucide-react';
+import { ScanLine, Mail, Briefcase, MapPin, Droplets, User as UserIcon, Upload, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { importUsersAction } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
+import * as XLSX from 'xlsx';
 
 // New component to safely render dates on the client
 function ClientFormattedDate({ date, formatString }: { date: string | null | undefined; formatString: string; }) {
@@ -162,6 +165,9 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
   const [search, setSearch] = useState('');
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const filteredUsers = useMemo(() => {
     if (!search) return initialUsers;
@@ -184,6 +190,80 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
     setSelectedUser(user);
     setIsQrDialogOpen(true);
   };
+  
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsImporting(true);
+    const reader = new FileReader();
+
+    reader.onload = async (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+            // Ensure empty cells are not skipped and are set to undefined
+            defval: undefined
+        });
+
+        // Convert all header to lowercase to be safe
+        const lowercasedJsonData = jsonData.map(row => {
+            const newRow: {[key: string]: any} = {};
+            for (const key in row as any) {
+                newRow[key.toLowerCase()] = (row as any)[key];
+            }
+            return newRow;
+        });
+
+        const result = await importUsersAction(lowercasedJsonData);
+
+        if (result.success) {
+          toast({
+            title: "Import Successful",
+            description: result.message,
+          });
+        } else {
+          toast({
+            variant: 'destructive',
+            title: "Import Failed",
+            description: result.message,
+          });
+        }
+      } catch (error) {
+        console.error("Error processing Excel file:", error);
+        toast({
+          variant: 'destructive',
+          title: "Import Error",
+          description: "An error occurred while processing the Excel file. Make sure it is a valid .xlsx or .xls file.",
+        });
+      } finally {
+        setIsImporting(false);
+        // Reset file input so the same file can be selected again
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+    };
+    
+    reader.onerror = () => {
+        setIsImporting(false);
+        toast({
+            variant: 'destructive',
+            title: "File Read Error",
+            description: "Could not read the selected file.",
+        });
+    }
+
+    reader.readAsArrayBuffer(file);
+  };
+
 
   return (
     <div className="space-y-6">
@@ -193,6 +273,21 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
           <p className="text-muted-foreground">A list of all users who have registered and participated.</p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
+             <Button onClick={handleImportClick} disabled={isImporting} className="flex-1 md:flex-initial">
+              {isImporting ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Upload className="mr-2 h-4 w-4" />
+              )}
+              Import
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileChange}
+              className="hidden"
+              accept=".xlsx, .xls, .csv"
+            />
             <Button asChild className="flex-1 md:flex-initial">
                 <Link href="/admin/scan">
                     <ScanLine className="mr-2 h-4 w-4" />

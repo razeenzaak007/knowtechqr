@@ -70,6 +70,32 @@ export async function addUser(user: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' 
     }
 }
 
+export async function addUsers(users: Array<Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' | 'checkedInAt'>>): Promise<void> {
+    try {
+        const db = await readDB();
+        
+        const newUsers: User[] = users.map(user => {
+            const newId = `user_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+            const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: newId }))}`;
+            return {
+                ...user,
+                id: newId,
+                createdAt: new Date().toISOString(),
+                checkedInAt: null,
+                qrCodeUrl: qrCodeUrl,
+            };
+        });
+
+        db.users.push(...newUsers);
+        await writeDB(db);
+
+    } catch (error) {
+        console.error("Error adding multiple users:", error);
+        throw new Error('Could not save users to the database. Please try again.');
+    }
+}
+
+
 export async function checkInUser(userId: string): Promise<{ user: User | null; alreadyCheckedIn: boolean; }> {
     try {
         const db = await readDB();

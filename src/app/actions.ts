@@ -3,7 +3,7 @@
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
-import { addUser as dbAddUser, checkInUser as dbCheckInUser } from '@/lib/data';
+import { addUser as dbAddUser, addUsers as dbAddUsers, checkInUser as dbCheckInUser } from '@/lib/data';
 import type { User } from '@/lib/types';
 
 const UserSchema = z.object({
@@ -71,6 +71,51 @@ export async function addUserAction(prevState: FormState, formData: FormData): P
       errors: {
         _form: [`Database error: ${errorMessage}`]
       }
+    };
+  }
+}
+
+const NewUserSchema = z.object({
+  name: z.string(),
+  age: z.coerce.number(),
+  bloodGroup: z.string(),
+  gender: z.string(),
+  job: z.string(),
+  area: z.string(),
+  whatsappNumber: z.string(),
+  email: z.string().email(),
+});
+
+const NewUsersSchema = z.array(NewUserSchema);
+
+
+export async function importUsersAction(usersData: unknown) {
+  const validatedFields = NewUsersSchema.safeParse(usersData);
+
+  if (!validatedFields.success) {
+    console.error('Validation failed:', validatedFields.error);
+    return {
+      success: false,
+      message: 'The data from the Excel file is not in the correct format. Please check the column headers and data types.',
+      count: 0
+    };
+  }
+
+  try {
+    await dbAddUsers(validatedFields.data);
+    revalidatePath('/admin');
+    return {
+      success: true,
+      message: `${validatedFields.data.length} users imported successfully.`,
+      count: validatedFields.data.length
+    };
+  } catch (e) {
+    console.error('importUsersAction error:', e);
+    const errorMessage = e instanceof Error ? e.message : 'An unexpected error occurred.';
+    return {
+      success: false,
+      message: `Database error: ${errorMessage}`,
+      count: 0
     };
   }
 }
