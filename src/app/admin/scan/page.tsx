@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Header from '@/components/header';
 import { useToast } from '@/hooks/use-toast';
-import { checkInUserAction } from '@/app/actions';
+import { checkInUser } from '@/lib/firestore';
 import type { User } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { CameraOff, CheckCircle, User as UserIcon, XCircle } from 'lucide-react';
@@ -93,18 +93,19 @@ export default function ScanPage() {
       // The QR code data is expected to be a JSON string like {"id":"..."}
       const qrData = JSON.parse(data);
       if (qrData && qrData.id) {
-        const result = await checkInUserAction(qrData.id);
-        if (result.success && result.user) {
+        const result = await checkInUser(qrData.id);
+        if (result.user && !result.alreadyCheckedIn) {
           setScannedUser(result.user);
            toast({
             title: "Check-in Successful",
             description: `${result.user.name} has been checked in.`,
           });
         } else {
-          setScanError(result.message || 'Failed to check-in user. User not found in database.');
-           if (result.alreadyCheckedIn && result.user) {
-             setScannedUser(result.user); // So we can show user details even on error
-          }
+            const message = result.alreadyCheckedIn ? `This user has already been checked in at ${new Date(result.user!.checkedInAt!).toLocaleString()}.` : 'Failed to check-in user. User not found in database.';
+            setScanError(message);
+            if (result.user) {
+              setScannedUser(result.user); // So we can show user details even on error
+            }
         }
       } else {
         setScanError('Invalid QR Code. The scanned code does not contain a valid user ID.');

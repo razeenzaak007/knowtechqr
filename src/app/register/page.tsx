@@ -1,11 +1,12 @@
 
 'use client';
 
-import React, { useState, useEffect, useActionState, useRef } from 'react';
+import React, { useState, useEffect, useRef, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { addUserAction, type FormState } from '@/app/actions';
+import { addUser } from '@/lib/firestore';
+import type { User } from '@/lib/types';
 import { Loader2, Download } from 'lucide-react';
 import Header from '@/components/header';
 import { useToast } from "@/hooks/use-toast";
@@ -14,44 +15,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 
-const initialState: FormState = {
-  message: '',
-  user: null,
-  errors: {},
-};
-
 export default function RegisterPage() {
   const { toast } = useToast();
-  const [state, formAction, isPending] = useActionState(addUserAction, initialState);
-  const [submittedUser, setSubmittedUser] = useState<FormState['user']>(null);
-  const formRef = useRef<HTMLFormElement>(null);
-  
-  // This key is used to force-reset the form fields after successful submission
-  const [formKey, setFormKey] = useState(Date.now().toString());
+  const [submittedUser, setSubmittedUser] = useState<User | null>(null);
+  const [isPending, setIsPending] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    // This effect runs when the server action is done (isPending is false)
-    if (!isPending) {
-      if (state.user) {
-        // SUCCESS: A user object was returned.
-        setSubmittedUser(state.user);
-        toast({
-          title: "Registration Successful!",
-          description: "Your QR code has been generated.",
-        });
-        formRef.current?.reset();
-        setFormKey(Date.now().toString());
-      } else if (state.message) {
-        // FAILURE: No user, but there's an error message.
-        setSubmittedUser(null);
-        toast({
-          variant: "destructive",
-          title: "Registration Failed",
-          description: state.message || state.errors?._form?.[0] || "An unknown error occurred.",
-        });
-      }
-    }
-  }, [state, isPending, toast]);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [formKey, setFormKey] = useState(Date.now().toString());
 
   const handleDownload = () => {
     if (!submittedUser?.qrCodeUrl) return;
@@ -66,7 +37,67 @@ export default function RegisterPage() {
   
   const handleRegisterAnother = () => {
     setSubmittedUser(null);
+    setErrors({});
+    setFormKey(Date.now().toString()); // Reset the form
   };
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsPending(true);
+    setErrors({});
+
+    const formData = new FormData(event.currentTarget);
+    const data = Object.fromEntries(formData.entries()) as any;
+
+    // Basic validation
+    const newErrors: Record<string, string> = {};
+    if (!data.name) newErrors.name = 'Full Name is required.';
+    if (!data.age) newErrors.age = 'Age is required.';
+    if (!data.bloodGroup) newErrors.bloodGroup = 'Blood Group is required.';
+    if (!data.gender) newErrors.gender = 'Gender is required.';
+    if (!data.job) newErrors.job = 'Job is required.';
+    if (!data.area) newErrors.area = 'Area is required.';
+    if (!data.whatsappNumber) newErrors.whatsappNumber = 'WhatsApp Number is required.';
+    if (!data.email) newErrors.email = 'Email is required.';
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      setIsPending(false);
+      return;
+    }
+
+    try {
+        const newUser: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' | 'checkedInAt'> = {
+            name: data.name,
+            age: Number(data.age),
+            bloodGroup: data.bloodGroup,
+            gender: data.gender,
+            job: data.job,
+            area: data.area,
+            whatsappNumber: data.whatsappNumber,
+            email: data.email,
+        };
+
+      const registeredUser = await addUser(newUser);
+      setSubmittedUser(registeredUser);
+      toast({
+        title: "Registration Successful!",
+        description: "Your QR code has been generated.",
+      });
+      formRef.current?.reset();
+    } catch (e: any) {
+      console.error("Registration failed:", e);
+      setErrors({ _form: e.message || "An unknown error occurred during registration." });
+      toast({
+        variant: "destructive",
+        title: "Registration Failed",
+        description: e.message || "Could not save user data. Please try again.",
+      });
+    } finally {
+      setIsPending(false);
+    }
+  };
+
 
   const bloodGroups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
 
@@ -112,19 +143,19 @@ export default function RegisterPage() {
                 <form 
                   key={formKey}
                   ref={formRef}
-                  action={formAction}
+                  onSubmit={handleSubmit}
                   className="space-y-6"
                 >
                     <div className="space-y-2">
                         <Label htmlFor="name">Full Name</Label>
                         <Input id="name" name="name" placeholder="e.g., Jane Doe" required />
-                        {state.errors?.name && <p className="text-sm font-medium text-destructive">{state.errors.name[0]}</p>}
+                        {errors?.name && <p className="text-sm font-medium text-destructive">{errors.name}</p>}
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="age">Age</Label>
                         <Input id="age" name="age" type="number" placeholder="e.g., 25" required />
-                        {state.errors?.age && <p className="text-sm font-medium text-destructive">{state.errors.age[0]}</p>}
+                        {errors?.age && <p className="text-sm font-medium text-destructive">{errors.age}</p>}
                     </div>
 
                     <div className="space-y-2">
@@ -137,7 +168,7 @@ export default function RegisterPage() {
                             {bloodGroups.map(group => <SelectItem key={group} value={group}>{group}</SelectItem>)}
                             </SelectContent>
                         </Select>
-                        {state.errors?.bloodGroup && <p className="text-sm font-medium text-destructive">{state.errors.bloodGroup[0]}</p>}
+                        {errors?.bloodGroup && <p className="text-sm font-medium text-destructive">{errors.bloodGroup}</p>}
                     </div>
 
                     <div className="space-y-3">
@@ -152,35 +183,35 @@ export default function RegisterPage() {
                             <Label htmlFor="female" className="font-normal">Female</Label>
                           </div>
                       </RadioGroup>
-                      {state.errors?.gender && <p className="text-sm font-medium text-destructive">{state.errors.gender[0]}</p>}
+                      {errors?.gender && <p className="text-sm font-medium text-destructive">{errors.gender}</p>}
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="job">Job</Label>
                         <Input id="job" name="job" placeholder="e.g., Software Engineer" required />
-                         {state.errors?.job && <p className="text-sm font-medium text-destructive">{state.errors.job[0]}</p>}
+                         {errors?.job && <p className="text-sm font-medium text-destructive">{errors.job}</p>}
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="area">Area in Kuwait</Label>
                         <Input id="area" name="area" placeholder="e.g., Salmiya" required />
-                        {state.errors?.area && <p className="text-sm font-medium text-destructive">{state.errors.area[0]}</p>}
+                        {errors?.area && <p className="text-sm font-medium text-destructive">{errors.area}</p>}
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
                         <Input id="whatsappNumber" name="whatsappNumber" type="tel" placeholder="e.g., 99xxxxxx" required />
-                        {state.errors?.whatsappNumber && <p className="text-sm font-medium text-destructive">{state.errors.whatsappNumber[0]}</p>}
+                        {errors?.whatsappNumber && <p className="text-sm font-medium text-destructive">{errors.whatsappNumber}</p>}
                     </div>
 
                     <div className="space-y-2">
                         <Label htmlFor="email">Email Address</Label>
                         <Input id="email" name="email" placeholder="e.g., jane.doe@example.com" type="email" required />
-                        {state.errors?.email && <p className="text-sm font-medium text-destructive">{state.errors.email[0]}</p>}
+                        {errors?.email && <p className="text-sm font-medium text-destructive">{errors.email}</p>}
                     </div>
                     
-                    {state.errors?._form && (
-                        <p className="text-sm font-medium text-destructive">{state.errors._form[0]}</p>
+                    {errors?._form && (
+                        <p className="text-sm font-medium text-destructive">{errors._form}</p>
                     )}
 
                   <Button type="submit" disabled={isPending} className="w-full">

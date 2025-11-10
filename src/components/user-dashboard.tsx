@@ -10,15 +10,14 @@ import { QrCodeDialog } from '@/components/qr-code-dialog';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScanLine, Mail, Briefcase, Upload, Loader2, Phone, FileDown, User as UserIcon } from 'lucide-react';
+import { ScanLine, Mail, Briefcase, Upload, Loader2, Phone, FileDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { importUsersAction } from '@/app/actions';
+import { addUsers } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
-import { useCollection, useFirestore, useMemoFirebase, useUser, useAuth } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from './ui/skeleton';
-import { signInAnonymously } from 'firebase/auth';
 
 interface UserDashboardProps {
   initialUsers: User[]; // This will be empty, kept for prop consistency
@@ -163,34 +162,13 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   const firestore = useFirestore();
-  const auth = useAuth();
-  const { user, isUserLoading } = useUser();
-
-  // Automatically sign in anonymously if not already signed in.
-  useEffect(() => {
-    if (!isUserLoading && !user) {
-      signInAnonymously(auth).catch((error) => {
-        console.error("Anonymous sign-in failed:", error);
-        toast({
-          variant: "destructive",
-          title: "Authentication Failed",
-          description: "Could not log in to view dashboard. Please refresh the page.",
-        });
-      });
-    }
-  }, [isUserLoading, user, auth, toast]);
 
   const usersQuery = useMemoFirebase(() => {
-    // Only create the query if we have a firestore instance AND a logged-in user.
-    if (!firestore || !user) return null;
+    if (!firestore) return null;
     return query(collection(firestore, 'users'), orderBy('createdAt', 'desc'));
-  }, [firestore, user]);
+  }, [firestore]);
 
-  // Pass the user loading state into the data fetching hook.
-  const { data: allUsers, isLoading: isDataLoading } = useCollection<User>(usersQuery);
-
-  // The overall loading state is true if we are waiting for auth OR waiting for data.
-  const isLoading = isUserLoading || (user && isDataLoading);
+  const { data: allUsers, isLoading } = useCollection<User>(usersQuery);
 
   const filteredUsers = useMemo(() => {
     if (!allUsers) return [];
@@ -261,20 +239,13 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
           };
         });
 
-        const result = await importUsersAction(mappedData);
+        await addUsers(mappedData);
 
-        if (result.success) {
-          toast({
+        toast({
             title: "Import Successful",
-            description: result.message,
-          });
-        } else {
-          toast({
-            variant: 'destructive',
-            title: "Import Failed",
-            description: result.message,
-          });
-        }
+            description: `${mappedData.length} users imported successfully.`,
+        });
+        
       } catch (error: any) {
         console.error("Error processing Excel file:", error);
         toast({
@@ -411,7 +382,3 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
     </div>
   );
 }
-
-    
-
-    

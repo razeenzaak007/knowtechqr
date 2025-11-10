@@ -2,19 +2,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Default to deny all access.
+    // Allow public read and write to the entire users collection.
+    // This removes all authentication requirements for this app.
+    match /users/{userId} {
+      allow read, write: if true;
+    }
+
+    // Default to deny all access for any other collections.
     match /{document=**} {
       allow read, write: if false;
     }
-
-    // Allow any authenticated user (including anonymous) to read and write
-    // to the 'users' collection. This is secure enough for this app's
-    // admin dashboard and registration functions.
-    match /users/{userId} {
-      allow read, write: if request.auth != null;
-    }
   }
 }
-
-    

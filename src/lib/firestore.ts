@@ -1,11 +1,30 @@
 
+'use client';
+
+import { 
+  getFirestore, 
+  collection, 
+  getDocs, 
+  addDoc, 
+  doc, 
+  updateDoc, 
+  Timestamp, 
+  serverTimestamp, 
+  writeBatch,
+  getDoc
+} from 'firebase/firestore';
 import type { User } from './types';
-import { adminDb } from '@/firebase/admin';
-import { Timestamp } from 'firebase-admin/firestore';
+import { initializeFirebase } from '@/firebase';
+
+// This function now runs on the client
+function getClientDb() {
+    return initializeFirebase().firestore;
+}
 
 export async function getUsers(): Promise<User[]> {
-  const usersCol = adminDb.collection('users');
-  const userSnapshot = await usersCol.get();
+  const db = getClientDb();
+  const usersCol = collection(db, 'users');
+  const userSnapshot = await getDocs(usersCol);
   const userList = userSnapshot.docs.map(doc => {
     const data = doc.data();
     return { 
@@ -20,66 +39,68 @@ export async function getUsers(): Promise<User[]> {
 }
 
 export async function addUser(user: Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' | 'checkedInAt'>): Promise<User> {
-  const usersCol = adminDb.collection('users');
+  const db = getClientDb();
+  const usersCol = collection(db, 'users');
   
   const newUserDoc = {
     ...user,
-    createdAt: Timestamp.now(),
+    createdAt: serverTimestamp(),
     checkedInAt: null,
   };
 
-  const docRef = await usersCol.add(newUserDoc);
+  const docRef = await addDoc(usersCol, newUserDoc);
   
   const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: docRef.id }))}`;
 
-  await docRef.update({ qrCodeUrl });
-  
-  const docSnap = await docRef.get();
-  const data = docSnap.data();
+  await updateDoc(docRef, { qrCodeUrl });
 
+  // We can't get the server timestamp on the client immediately, so we'll construct the user object without it.
+  // The on-success UI will have everything it needs.
   return {
-    ...data,
+    ...user,
     id: docRef.id,
-    createdAt: (data?.createdAt as Timestamp).toDate().toISOString(),
+    createdAt: new Date().toISOString(), // Use client time for immediate feedback
     checkedInAt: null,
     qrCodeUrl,
   } as User;
 }
 
 export async function addUsers(users: Array<Partial<Omit<User, 'id' | 'createdAt' | 'qrCodeUrl' | 'checkedInAt'>>>): Promise<void> {
-  const usersCol = adminDb.collection('users');
-  const batch = adminDb.batch();
+    const db = getClientDb();
+    const usersCol = collection(db, 'users');
+    const batch = writeBatch(db);
 
-  const promises = users.map(async (user) => {
-    const docData = {
-      name: user.name ?? 'N/A',
-      age: user.age ?? 0,
-      bloodGroup: user.bloodGroup ?? 'N/A',
-      gender: user.gender ?? 'N/A',
-      job: user.job ?? 'N/A',
-      area: user.area ?? 'N/A',
-      whatsappNumber: user.whatsappNumber ?? 'N/A',
-      email: user.email ?? 'N/A',
-      createdAt: Timestamp.now(),
-      checkedInAt: null,
-      qrCodeUrl: '',
-    };
-    const docRef = usersCol.doc(); // Create a reference first
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: docRef.id }))}`;
-    
-    batch.set(docRef, { ...docData, qrCodeUrl });
-  });
+    users.forEach((user) => {
+        const docRef = doc(usersCol); // Create a reference first to get the ID
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(JSON.stringify({ id: docRef.id }))}`;
+        
+        const docData = {
+          name: user.name ?? 'N/A',
+          age: user.age ?? 0,
+          bloodGroup: user.bloodGroup ?? 'N/A',
+          gender: user.gender ?? 'N/A',
+          job: user.job ?? 'N/A',
+          area: user.area ?? 'N/A',
+          whatsappNumber: user.whatsappNumber ?? 'N/A',
+          email: user.email ?? 'N/A',
+          createdAt: serverTimestamp(),
+          checkedInAt: null,
+          qrCodeUrl: qrCodeUrl,
+        };
+        batch.set(docRef, docData);
+    });
 
-  await Promise.all(promises); // Wait for all QR URLs to be determined
-  await batch.commit(); // Commit the batch write
+    await batch.commit();
 }
 
-export async function checkInUser(userId: string): Promise<{ user: User | null; alreadyCheckedIn: boolean; }> {
-  const userRef = adminDb.collection('users').doc(userId);
-  const userSnap = await userRef.get();
 
-  if (userSnap.exists) {
-    const userData = userSnap.data()!;
+export async function checkInUser(userId: string): Promise<{ user: User | null; alreadyCheckedIn: boolean; }> {
+  const db = getClientDb();
+  const userRef = doc(db, 'users', userId);
+  const userSnap = await getDoc(userRef);
+
+  if (userSnap.exists()) {
+    const userData = userSnap.data();
     if (userData.checkedInAt) {
       return { 
         user: { 
@@ -92,10 +113,12 @@ export async function checkInUser(userId: string): Promise<{ user: User | null; 
       };
     }
 
-    const checkedInTime = Timestamp.now();
-    await userRef.update({ checkedInAt: checkedInTime });
+    const checkedInTime = serverTimestamp();
+    await updateDoc(userRef, { checkedInAt: checkedInTime });
 
-    const updatedUserSnap = await userRef.get();
+    // For immediate feedback, we refetch, though it may not have server timestamp yet.
+    // The UI should handle this gracefully.
+    const updatedUserSnap = await getDoc(userRef);
     const updatedUserData = updatedUserSnap.data()!;
 
     return { 
@@ -103,7 +126,7 @@ export async function checkInUser(userId: string): Promise<{ user: User | null; 
         ...updatedUserData,
         id: updatedUserSnap.id,
         createdAt: (updatedUserData.createdAt as Timestamp).toDate().toISOString(),
-        checkedInAt: (updatedUserData.checkedInAt as Timestamp).toDate().toISOString(),
+        checkedInAt: new Date().toISOString(), // Use client time for immediate UI update
       } as User, 
       alreadyCheckedIn: false 
     };
