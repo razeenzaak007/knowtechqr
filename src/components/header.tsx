@@ -8,12 +8,11 @@ export default function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-3 text-xl font-bold transition-opacity hover:opacity-80">
-            <div className="bg-muted p-1 rounded-md flex items-center justify-center">
+            <div className="relative h-10 w-24">
                 <Image 
                     src="https://i.postimg.cc/RVpDWGv4/IMG-20251111-WA0000.jpg"
                     alt="Knowtech Logo"
-                    width={90}
-                    height={32}
+                    fill
                     className="object-contain"
                 />
             </div>
