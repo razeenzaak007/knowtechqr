@@ -8,9 +8,14 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Allow read/write access to the 'users' collection for any authenticated user.
-    // This is a simple rule for demonstration. For a production app, you'd likely
-    // want to restrict this further (e.g., only a user can edit their own data).
+    // Allow list access for the 'users' collection for any authenticated user.
+    // This is necessary for the admin dashboard to display all users.
+    match /users {
+      allow list: if request.auth != null;
+    }
+
+    // Allow read/write access to individual documents in the 'users' collection 
+    // for any authenticated user.
     match /users/{userId} {
       allow read, write: if request.auth != null;
     }
