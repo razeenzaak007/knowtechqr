@@ -1,0 +1,18 @@
+# This file configures the build and deployment settings for Netlify.
+# Netlify automatically detects Next.js projects, but this file makes
+# the configuration explicit and ensures consistency.
+
+[build]
+  # This command builds your Next.js application for production.
+  # It runs the "build" script defined in your package.json file.
+  command = "npm run build"
+
+  # This is the directory where Next.js outputs the final, static
+  # version of your site. Netlify will serve your site from this folder.
+  publish = ".next"
+
+[dev]
+  # This tells the Netlify CLI how to run your project locally.
+  command = "npm run dev"
+  port = 3000
+  targetPort = 3000
