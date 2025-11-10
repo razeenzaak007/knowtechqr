@@ -7,35 +7,14 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { UserTableActions } from '@/components/user-table-actions';
 import { QrCodeDialog } from '@/components/qr-code-dialog';
-import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScanLine, Mail, Briefcase, MapPin, Droplets, User as UserIcon, Upload, Loader2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ScanLine, Mail, Briefcase, Upload, Loader2, Phone } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { importUsersAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
-
-// New component to safely render dates on the client
-function ClientFormattedDate({ date, formatString }: { date: string | null | undefined; formatString: string; }) {
-    const [mounted, setMounted] = useState(false);
-    useEffect(() => setMounted(true), []);
-
-    if (!mounted || !date) {
-        // Render a placeholder or nothing on the server and initial client render
-        return null; 
-    }
-
-    try {
-        return <span>{format(new Date(date), formatString)}</span>;
-    } catch (e) {
-        return null;
-    }
-}
-
 
 interface UserDashboardProps {
   initialUsers: User[];
@@ -50,23 +29,9 @@ function UserMobileCard({ user, onShowQr }: { user: User; onShowQr: (user: User)
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="text-sm text-muted-foreground space-y-2">
+            <div className="flex items-center"><Phone className="mr-2 h-4 w-4" /><span>{user.whatsappNumber}</span></div>
             <div className="flex items-center"><Mail className="mr-2 h-4 w-4" /><span>{user.email}</span></div>
             <div className="flex items-center"><Briefcase className="mr-2 h-4 w-4" /><span>{user.job}</span></div>
-            <div className="flex items-center"><MapPin className="mr-2 h-4 w-4" /><span>{user.area}</span></div>
-            <div className="flex items-center"><Droplets className="mr-2 h-4 w-4" /><span>{user.bloodGroup}</span></div>
-            <div className="flex items-center capitalize"><UserIcon className="mr-2 h-4 w-4" /><span>{user.gender}</span></div>
-        </div>
-         <div className="flex items-center justify-between pt-2 border-t">
-          <div>
-            {user.checkedInAt ? (
-              <Badge variant="secondary">Checked In</Badge>
-            ) : (
-              <Badge variant="outline">Registered</Badge>
-            )}
-          </div>
-          <div className="text-xs text-muted-foreground">
-             <ClientFormattedDate date={user.checkedInAt ?? user.createdAt} formatString="MMM d, h:mm a" />
-          </div>
         </div>
       </CardContent>
     </Card>
@@ -94,17 +59,13 @@ function UserTable({
     
     {/* Desktop View */}
     <div className="mt-4 rounded-lg border hidden md:block">
-      <TooltipProvider>
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead className="hidden md:table-cell">Email</TableHead>
-              <TableHead className="hidden lg:table-cell">Job</TableHead>
-              <TableHead className="hidden lg:table-cell">Area</TableHead>
-              <TableHead className="hidden xl:table-cell">Blood Group</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right hidden sm:table-cell">Registered</TableHead>
+              <TableHead>WhatsApp Number</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Job</TableHead>
               <TableHead><span className="sr-only">Actions</span></TableHead>
             </TableRow>
           </TableHeader>
@@ -113,34 +74,9 @@ function UserTable({
               users.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.name}</TableCell>
-                  <TableCell className="text-muted-foreground hidden md:table-cell">{user.email}</TableCell>
-                  <TableCell className="hidden lg:table-cell">{user.job}</TableCell>
-                  <TableCell className="hidden lg:table-cell">{user.area}</TableCell>
-                  <TableCell className="hidden xl:table-cell">{user.bloodGroup}</TableCell>
-                  <TableCell>
-                    {user.checkedInAt ? (
-                       <Tooltip>
-                        <TooltipTrigger>
-                           <Badge variant="secondary">Checked In</Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <ClientFormattedDate date={user.checkedInAt} formatString='MMM d, yyyy h:mm a' />
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      <Badge variant="outline">Registered</Badge>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground hidden sm:table-cell">
-                    <Tooltip>
-                      <TooltipTrigger>
-                         <ClientFormattedDate date={user.createdAt} formatString='MMM d, yyyy' />
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <ClientFormattedDate date={user.createdAt} formatString='MMM d, yyyy h:mm a' />
-                      </TooltipContent>
-                    </Tooltip>
-                  </TableCell>
+                  <TableCell>{user.whatsappNumber}</TableCell>
+                  <TableCell className="text-muted-foreground">{user.email}</TableCell>
+                  <TableCell>{user.job}</TableCell>
                   <TableCell className="text-right">
                     <UserTableActions user={user} onShowQr={onShowQr} />
                   </TableCell>
@@ -148,14 +84,13 @@ function UserTable({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={8} className="text-center h-24 text-muted-foreground">
+                <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
                   No users found.
                 </TableCell>
               </TableRow>
             )}
           </TableBody>
         </Table>
-      </TooltipProvider>
     </div>
     </>
   );
@@ -214,7 +149,12 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
             defval: null // Use null for blank cells
         });
 
+        if (jsonData.length < 2) {
+          throw new Error("Excel file has no data rows.");
+        }
+
         const headers: string[] = (jsonData[0] as string[]).map(h => h ? String(h).trim() : '');
+        
         const mappedData = (jsonData.slice(1) as any[][]).map((row: any[]) => {
           const rowData: {[key: string]: any} = {};
           headers.forEach((header, index) => {
@@ -248,12 +188,12 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
             description: result.message,
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error processing Excel file:", error);
         toast({
           variant: 'destructive',
           title: "Import Error",
-          description: "An error occurred while processing the Excel file. Make sure it is a valid .xlsx or .xls file and the column headers are correct.",
+          description: error.message || "An error occurred while processing the Excel file. Make sure it is a valid .xlsx or .xls file and the column headers are correct.",
         });
       } finally {
         setIsImporting(false);
