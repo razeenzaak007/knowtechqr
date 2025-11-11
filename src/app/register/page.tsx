@@ -1,19 +1,19 @@
 
 'use client';
 
-import React, { useState, useEffect, useRef, FormEvent } from 'react';
+import React, { useState, useRef, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { addUser } from '@/lib/firestore';
 import type { User } from '@/lib/types';
-import { Loader2, Download } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import Header from '@/components/header';
 import { useToast } from "@/hooks/use-toast";
-import Image from 'next/image';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { QrCodeDisplay } from '@/components/qr-code-display';
 
 export default function RegisterPage() {
   const { toast } = useToast();
@@ -24,17 +24,6 @@ export default function RegisterPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const [formKey, setFormKey] = useState(Date.now().toString());
 
-  const handleDownload = () => {
-    if (!submittedUser?.qrCodeUrl) return;
-    const link = document.createElement('a');
-    link.href = submittedUser.qrCodeUrl;
-    link.download = `qrcode-${submittedUser.name?.replace(/\s+/g, '-').toLowerCase()}.png`;
-    link.target = '_blank';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-  
   const handleRegisterAnother = () => {
     setSubmittedUser(null);
     setErrors({});
@@ -106,41 +95,22 @@ export default function RegisterPage() {
       <Header />
       <main className="flex-1 container mx-auto p-4 md:p-8 flex items-center justify-center">
         <Card className="w-full max-w-lg">
-          <CardHeader>
-            <CardTitle>User Registration</CardTitle>
-            <CardDescription>Fill out the form below to register. Your QR code will be generated upon submission.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {submittedUser ? (
-              <div className="flex flex-col items-center justify-center text-center space-y-4 py-8">
-                 <h2 className="text-2xl font-bold">Basic Life Support Training</h2>
-                <p className="text-muted-foreground">
-                  Here is your unique QR code for entry. Please save it.
-                </p>
-                {submittedUser.qrCodeUrl && (
-                  <div className="flex flex-col items-center justify-center p-6 bg-muted/50 rounded-lg border">
-                    <Image
-                      src={submittedUser.qrCodeUrl}
-                      alt={`QR Code for ${submittedUser.name}`}
-                      width={250}
-                      height={250}
-                      className="rounded-lg shadow-md"
-                      unoptimized
-                    />
-                    <p className="mt-4 text-lg font-semibold">{submittedUser.name}</p>
-                  </div>
-                )}
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Button onClick={handleDownload} size="lg">
-                    <Download className="mr-2 h-4 w-4" />
-                    Download QR Code
-                  </Button>
-                  <Button onClick={handleRegisterAnother} variant="secondary" size="lg">
-                    Register Another
-                  </Button>
+          {submittedUser ? (
+             <CardContent className="pt-6">
+                <QrCodeDisplay user={submittedUser} />
+                 <div className="flex justify-center">
+                    <Button onClick={handleRegisterAnother} variant="secondary" size="lg">
+                        Register Another
+                    </Button>
                 </div>
-              </div>
-            ) : (
+             </CardContent>
+          ) : (
+            <>
+              <CardHeader>
+                <CardTitle>User Registration</CardTitle>
+                <CardDescription>Fill out the form below to register. Your QR code will be generated upon submission.</CardDescription>
+              </CardHeader>
+              <CardContent>
                 <form 
                   key={formKey}
                   ref={formRef}
@@ -226,8 +196,9 @@ export default function RegisterPage() {
                     )}
                   </Button>
                 </form>
-            )}
-          </CardContent>
+              </CardContent>
+            </>
+          )}
         </Card>
       </main>
     </div>
