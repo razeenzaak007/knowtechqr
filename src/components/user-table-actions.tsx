@@ -1,16 +1,18 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuLabel, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import type { User } from '@/lib/types';
-import { MoreHorizontal, QrCode } from 'lucide-react';
+import { MoreHorizontal, QrCode, Eraser } from 'lucide-react';
 
 interface UserTableActionsProps {
   user: User;
   onShowQr: (user: User) => void;
+  onClearCheckIn: (user: User) => void;
 }
 
-export function UserTableActions({ user, onShowQr }: UserTableActionsProps) {
+export function UserTableActions({ user, onShowQr, onClearCheckIn }: UserTableActionsProps) {
   return (
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
@@ -26,6 +28,12 @@ export function UserTableActions({ user, onShowQr }: UserTableActionsProps) {
           <QrCode className="mr-2 h-4 w-4" />
           View QR Code
         </DropdownMenuItem>
+        {user.checkedInAt && (
+          <DropdownMenuItem onClick={() => onClearCheckIn(user)} className="text-destructive focus:text-destructive">
+            <Eraser className="mr-2 h-4 w-4" />
+            Clear Check-in
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

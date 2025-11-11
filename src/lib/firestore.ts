@@ -11,7 +11,8 @@ import {
   Timestamp, 
   serverTimestamp, 
   writeBatch,
-  getDoc
+  getDoc,
+  runTransaction
 } from 'firebase/firestore';
 import type { User } from './types';
 import { initializeFirebase } from '@/firebase';
@@ -133,4 +134,11 @@ export async function checkInUser(userId: string): Promise<{ user: User | null; 
   }
 
   return { user: null, alreadyCheckedIn: false };
+}
+
+
+export async function clearCheckIn(userId: string): Promise<void> {
+  const db = getClientDb();
+  const userRef = doc(db, 'users', userId);
+  await updateDoc(userRef, { checkedInAt: null });
 }

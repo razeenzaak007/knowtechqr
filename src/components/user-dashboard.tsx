@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import type { User } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -12,23 +12,25 @@ import Link from 'next/link';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScanLine, Mail, Briefcase, Upload, Loader2, Phone, FileDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { addUsers } from '@/lib/firestore';
+import { addUsers, clearCheckIn } from '@/lib/firestore';
 import { useToast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, orderBy } from 'firebase/firestore';
 import { Skeleton } from './ui/skeleton';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from './ui/alert-dialog';
+
 
 interface UserDashboardProps {
   initialUsers: User[]; // This will be empty, kept for prop consistency
 }
 
-function UserMobileCard({ user, onShowQr }: { user: User; onShowQr: (user: User) => void; }) {
+function UserMobileCard({ user, onShowQr, onClearCheckIn }: { user: User; onShowQr: (user: User) => void; onClearCheckIn: (user: User) => void; }) {
   return (
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-base font-medium">{user.name}</CardTitle>
-        <UserTableActions user={user} onShowQr={onShowQr} />
+        <UserTableActions user={user} onShowQr={onShowQr} onClearCheckIn={onClearCheckIn} />
       </CardHeader>
       <CardContent className="space-y-3 pt-2">
         <div className="text-sm text-muted-foreground space-y-2">
@@ -46,10 +48,12 @@ function UserTable({
   users,
   isLoading,
   onShowQr,
+  onClearCheckIn,
 }: {
   users: User[];
   isLoading: boolean;
   onShowQr: (user: User) => void;
+  onClearCheckIn: (user: User) => void;
 }) {
   if (isLoading) {
     return <UserTableSkeleton />;
@@ -60,7 +64,7 @@ function UserTable({
     {/* Mobile View */}
     <div className="mt-4 space-y-4 md:hidden">
          {users.length > 0 ? (
-            users.map((user) => <UserMobileCard key={user.id} user={user} onShowQr={onShowQr} />)
+            users.map((user) => <UserMobileCard key={user.id} user={user} onShowQr={onShowQr} onClearCheckIn={onClearCheckIn} />)
         ) : (
             <div className="text-center text-muted-foreground py-12">No users found.</div>
         )}
@@ -87,7 +91,7 @@ function UserTable({
                   <TableCell className="text-muted-foreground">{user.email}</TableCell>
                   <TableCell>{user.job}</TableCell>
                   <TableCell className="text-right">
-                    <UserTableActions user={user} onShowQr={onShowQr} />
+                    <UserTableActions user={user} onShowQr={onShowQr} onClearCheckIn={onClearCheckIn} />
                   </TableCell>
                 </TableRow>
               ))
@@ -158,6 +162,7 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isQrDialogOpen, setIsQrDialogOpen] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [userToClear, setUserToClear] = useState<User | null>(null);
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
@@ -191,6 +196,29 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
   const handleShowQr = (user: User) => {
     setSelectedUser(user);
     setIsQrDialogOpen(true);
+  };
+
+  const handleClearCheckInRequest = (user: User) => {
+    setUserToClear(user);
+  };
+  
+  const confirmClearCheckIn = async () => {
+    if (!userToClear) return;
+    try {
+      await clearCheckIn(userToClear.id);
+      toast({
+        title: 'Check-in Cleared',
+        description: `${userToClear.name}'s check-in status has been reset.`,
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to clear check-in status.',
+      });
+    } finally {
+      setUserToClear(null);
+    }
   };
   
   const handleImportClick = () => {
@@ -354,7 +382,7 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
                         Export to Excel
                     </Button>
                  </div>
-                <UserTable users={registeredUsers} onShowQr={handleShowQr} isLoading={isLoading} />
+                <UserTable users={registeredUsers} onShowQr={handleShowQr} onClearCheckIn={handleClearCheckInRequest} isLoading={isLoading} />
             </div>
         </TabsContent>
         <TabsContent value="checked-in">
@@ -365,7 +393,7 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
                         Export to Excel
                     </Button>
                  </div>
-                <UserTable users={checkedInUsers} onShowQr={handleShowQr} isLoading={isLoading} />
+                <UserTable users={checkedInUsers} onShowQr={handleShowQr} onClearCheckIn={handleClearCheckInRequest} isLoading={isLoading} />
             </div>
         </TabsContent>
 
@@ -379,6 +407,24 @@ export default function UserDashboard({ initialUsers }: UserDashboardProps) {
           onOpenChange={setIsQrDialogOpen} 
         />
       )}
+
+      <AlertDialog open={!!userToClear} onOpenChange={(open) => !open && setUserToClear(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will clear the check-in for <span className="font-semibold">{userToClear?.name}</span>. They will be moved back to the 'Registered' list.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUserToClear(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmClearCheckIn}>
+              Confirm
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   );
 }
