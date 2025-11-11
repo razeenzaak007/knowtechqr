@@ -113,12 +113,12 @@ export default function RegisterPage() {
           <CardContent>
             {submittedUser ? (
               <div className="flex flex-col items-center justify-center text-center space-y-4 py-8">
-                 <h2 className="text-2xl font-bold">Registration Successful!</h2>
+                 <h2 className="text-2xl font-bold">Basic Life Support Training</h2>
                 <p className="text-muted-foreground">
                   Here is your unique QR code for entry. Please save it.
                 </p>
                 {submittedUser.qrCodeUrl && (
-                  <div className="flex items-center justify-center p-6 bg-muted/50 rounded-lg border">
+                  <div className="flex flex-col items-center justify-center p-6 bg-muted/50 rounded-lg border">
                     <Image
                       src={submittedUser.qrCodeUrl}
                       alt={`QR Code for ${submittedUser.name}`}
@@ -127,6 +127,7 @@ export default function RegisterPage() {
                       className="rounded-lg shadow-md"
                       unoptimized
                     />
+                    <p className="mt-4 text-lg font-semibold">{submittedUser.name}</p>
                   </div>
                 )}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
