@@ -50,7 +50,7 @@ export function QrCodeDialog({ user, open, onOpenChange }: QrCodeDialogProps) {
   const handleSendWhatsApp = () => {
     if (!user) return;
     
-    const message = `Hello ${user.name},\n\nHere are your registration details:\n\n*Name:* ${user.name}\n*Job:* ${user.job}\n*Area:* ${user.area}\n\nHere is your QR Code for event entry:\n${user.qrCodeUrl}\n\nPlease save it for the event day.`;
+    const message = `Hello ${user.name},\n\nHere are your registration details for the Basic Life Support Training event:\n\n*Name:* ${user.name}\n*Job:* ${user.job}\n*Area:* ${user.area}\n\nHere is your QR Code for event entry:\n${user.qrCodeUrl}\n\nPlease save it for the event day.`;
 
     const whatsappUrl = `https://wa.me/${user.whatsappNumber}?text=${encodeURIComponent(message)}`;
     
@@ -61,12 +61,12 @@ export function QrCodeDialog({ user, open, onOpenChange }: QrCodeDialogProps) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>QR Code for {user.name}</DialogTitle>
+          <DialogTitle>Basic Life Support Training</DialogTitle>
           <DialogDescription>
-            This is the user's unique QR code and registration details.
+            This is the participant's unique QR code for event entry.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex items-center justify-center p-6 bg-muted/50 rounded-lg border">
+        <div className="flex flex-col items-center justify-center p-6 bg-muted/50 rounded-lg border">
           <Image
             src={user.qrCodeUrl}
             alt={`QR Code for ${user.name}`}
@@ -75,6 +75,7 @@ export function QrCodeDialog({ user, open, onOpenChange }: QrCodeDialogProps) {
             className="rounded-lg shadow-md"
             unoptimized // QR code API might not have cache headers
           />
+           <p className="mt-4 text-lg font-semibold">{user.name}</p>
         </div>
         <div className="text-sm space-y-1 text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1">
             <p><span className="font-semibold text-foreground">Email:</span> {user.email}</p>
