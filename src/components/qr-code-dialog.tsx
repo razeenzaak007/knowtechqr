@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import type { User } from '@/lib/types';
 import { QrCodeDisplay } from './qr-code-display';
-import Header from './header';
 
 const WhatsAppIcon = () => (
   <svg
@@ -35,7 +34,10 @@ export function QrCodeDialog({ user, open, onOpenChange }: QrCodeDialogProps) {
   const handleSendWhatsApp = () => {
     if (!user) return;
 
-    const message = `Hello ${user.name},\n\nHere are your registration details for the Basic Life Support Training event:\n\n*Name:* ${user.name}\n*Job:* ${user.job}\n*Area:* ${user.area}\n\nHere is your QR Code for event entry:\n${user.qrCodeUrl}\n\nPlease save it for the event day.`;
+    // The link to the user's personal QR code page
+    const participantPageUrl = `${window.location.origin}/participant/${user.id}`;
+
+    const message = `Hello ${user.name},\n\nThank you for registering for the Basic Life Support Training event.\n\nPlease visit the link below to view and save your personal QR code for event entry:\n${participantPageUrl}\n\nWe look forward to seeing you there!`;
 
     const whatsappUrl = `https://wa.me/${user.whatsappNumber}?text=${encodeURIComponent(message)}`;
 
@@ -45,8 +47,7 @@ export function QrCodeDialog({ user, open, onOpenChange }: QrCodeDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg p-0">
-        <Header />
-        <div className="p-6">
+        <div className="p-6 pt-0">
           <QrCodeDisplay user={user} />
           <div className="text-sm space-y-1 text-muted-foreground grid grid-cols-2 gap-x-4 gap-y-1 mb-6">
               <p><span className="font-semibold text-foreground">Email:</span> {user.email}</p>

@@ -10,7 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { checkInUser } from '@/lib/firestore';
 import type { User } from '@/lib/types';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { CameraOff, CheckCircle, User as UserIcon, XCircle } from 'lucide-react';
+import { CameraOff, CheckCircle, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 
@@ -90,10 +90,23 @@ export default function ScanPage() {
     setScanError(null);
     setScannedUser(null);
     try {
-      // The QR code data is expected to be a JSON string like {"id":"..."}
-      const qrData = JSON.parse(data);
-      if (qrData && qrData.id) {
-        const result = await checkInUser(qrData.id);
+      let userId: string | null = null;
+      
+      // New logic: check if the data is a URL or JSON
+      if (data.includes('participant/')) {
+        // It's a URL like https://.../participant/userId
+        const urlParts = data.split('/');
+        userId = urlParts[urlParts.length - 1];
+      } else {
+        // It's likely the old JSON format
+        const qrData = JSON.parse(data);
+        if (qrData && qrData.id) {
+            userId = qrData.id;
+        }
+      }
+
+      if (userId) {
+        const result = await checkInUser(userId);
         if (result.user && !result.alreadyCheckedIn) {
           setScannedUser(result.user);
            toast({

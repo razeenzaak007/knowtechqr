@@ -8,7 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { addUser } from '@/lib/firestore';
 import type { User } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
-import Header from '@/components/header';
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -92,13 +91,12 @@ export default function RegisterPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
-      <Header />
       <main className="flex-1 container mx-auto p-4 md:p-8 flex items-center justify-center">
         <Card className="w-full max-w-lg">
           {submittedUser ? (
-             <CardContent className="pt-6">
+             <CardContent className="pt-6 px-0">
                 <QrCodeDisplay user={submittedUser} />
-                 <div className="flex justify-center">
+                 <div className="flex justify-center mt-[-1rem] pb-6">
                     <Button onClick={handleRegisterAnother} variant="secondary" size="lg">
                         Register Another
                     </Button>
