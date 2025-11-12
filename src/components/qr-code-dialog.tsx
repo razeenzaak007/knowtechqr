@@ -36,8 +36,9 @@ export function QrCodeDialog({ user, open, onOpenChange }: QrCodeDialogProps) {
 
     // The link to the user's personal QR code page
     const participantPageUrl = `${window.location.origin}/participant/${user.id}`;
+    const venueUrl = "https://maps.app.goo.gl/1u39ZagstVPDZdXUA?g_st=ipc";
 
-    const message = `Hello ${user.name},\n\nThank you for registering for the Basic Life Support Training event.\n\nPlease visit the link below to view and save your personal QR code for event entry:\n${participantPageUrl}\n\nWe look forward to seeing you there!`;
+    const message = `Dear ${user.name},\n\nYour Registration for Basic Life Support (BLS) Training in connection with KnowTech 3.0 is Confirmed. You are requested to report at Venue by 1.30 pm and show the QR Code provided in the below link at Entrance.\n\n${participantPageUrl}\n\nVenue location: ${venueUrl}\n\nThank You\nKnowTech Drive, Kuwait`;
 
     const whatsappUrl = `https://wa.me/${user.whatsappNumber}?text=${encodeURIComponent(message)}`;
 
