@@ -10,7 +10,7 @@ export default function Header() {
           <Link href="/" className="flex items-center gap-3 text-xl font-bold transition-opacity hover:opacity-80">
             <div className="relative h-10 w-24">
                 <Image 
-                    src="https://i.postimg.cc/RVpDWGv4/IMG-20251111-WA0000.jpg"
+                    src="https://i.postimg.cc/7YjGsLvh/IMG-20251111-WA0000.jpg"
                     alt="Knowtech Logo"
                     fill
                     className="object-contain"
